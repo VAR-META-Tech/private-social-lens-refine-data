@@ -135,64 +135,64 @@ CREATE TABLE "schema_version" (
 CREATE INDEX "refinement_jobs_status_idx" ON "refinement_jobs"("status");
 
 -- CreateIndex
-CREATE INDEX "refinement_jobs_jobType_idx" ON "refinement_jobs"("job_type");
+CREATE INDEX "refinement_jobs_job_type_idx" ON "refinement_jobs"("job_type");
 
 -- CreateIndex
-CREATE INDEX "refinement_jobs_createdAt_idx" ON "refinement_jobs"("created_at");
+CREATE INDEX "refinement_jobs_created_at_idx" ON "refinement_jobs"("created_at");
 
 -- CreateIndex
-CREATE INDEX "refinement_jobs_scheduledAt_idx" ON "refinement_jobs"("scheduled_at");
+CREATE INDEX "refinement_jobs_scheduled_at_idx" ON "refinement_jobs"("scheduled_at");
 
 -- CreateIndex
-CREATE INDEX "refinement_jobs_nextRetryAt_idx" ON "refinement_jobs"("next_retry_at");
+CREATE INDEX "refinement_jobs_next_retry_at_idx" ON "refinement_jobs"("next_retry_at");
 
 -- CreateIndex
 CREATE INDEX "refinement_jobs_status_priority_idx" ON "refinement_jobs"("status", "priority");
 
 -- CreateIndex
-CREATE INDEX "file_processing_logs_jobId_idx" ON "file_processing_logs"("job_id");
+CREATE INDEX "file_processing_logs_job_id_idx" ON "file_processing_logs"("job_id");
 
 -- CreateIndex
-CREATE INDEX "file_processing_logs_fileId_idx" ON "file_processing_logs"("file_id");
+CREATE INDEX "file_processing_logs_file_id_idx" ON "file_processing_logs"("file_id");
 
 -- CreateIndex
 CREATE INDEX "file_processing_logs_status_idx" ON "file_processing_logs"("status");
 
 -- CreateIndex
-CREATE INDEX "file_processing_logs_createdAt_idx" ON "file_processing_logs"("created_at");
+CREATE INDEX "file_processing_logs_created_at_idx" ON "file_processing_logs"("created_at");
 
 -- CreateIndex
-CREATE INDEX "file_processing_logs_jobId_status_idx" ON "file_processing_logs"("job_id", "status");
+CREATE INDEX "file_processing_logs_job_id_status_idx" ON "file_processing_logs"("job_id", "status");
 
 -- CreateIndex
-CREATE INDEX "file_processing_logs_fileId_status_idx" ON "file_processing_logs"("file_id", "status");
+CREATE INDEX "file_processing_logs_file_id_status_idx" ON "file_processing_logs"("file_id", "status");
 
 -- CreateIndex
-CREATE INDEX "batch_statistics_jobId_idx" ON "batch_statistics"("job_id");
+CREATE INDEX "batch_statistics_job_id_idx" ON "batch_statistics"("job_id");
 
 -- CreateIndex
-CREATE INDEX "batch_statistics_createdAt_idx" ON "batch_statistics"("created_at");
+CREATE INDEX "batch_statistics_created_at_idx" ON "batch_statistics"("created_at");
 
 -- CreateIndex
 CREATE INDEX "processing_queue_status_idx" ON "processing_queue"("status");
 
 -- CreateIndex
-CREATE INDEX "processing_queue_jobId_idx" ON "processing_queue"("job_id");
+CREATE INDEX "processing_queue_job_id_idx" ON "processing_queue"("job_id");
 
 -- CreateIndex
-CREATE INDEX "processing_queue_priority_scheduledAt_idx" ON "processing_queue"("priority", "scheduled_at");
+CREATE INDEX "processing_queue_priority_scheduled_at_idx" ON "processing_queue"("priority", "scheduled_at");
 
 -- CreateIndex
-CREATE INDEX "processing_queue_scheduledAt_idx" ON "processing_queue"("scheduled_at");
+CREATE INDEX "processing_queue_scheduled_at_idx" ON "processing_queue"("scheduled_at");
 
 -- CreateIndex
-CREATE INDEX "processing_queue_nextAttemptAt_idx" ON "processing_queue"("next_attempt_at");
-
--- CreateIndex
-CREATE INDEX "system_config_updatedAt_idx" ON "system_config"("updated_at");
+CREATE INDEX "processing_queue_next_attempt_at_idx" ON "processing_queue"("next_attempt_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "processing_queue_job_id_file_id_key" ON "processing_queue"("job_id", "file_id");
+
+-- CreateIndex
+CREATE INDEX "system_config_updated_at_idx" ON "system_config"("updated_at");
 
 -- AddForeignKey
 ALTER TABLE "file_processing_logs" ADD CONSTRAINT "file_processing_logs_job_id_fkey" FOREIGN KEY ("job_id") REFERENCES "refinement_jobs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -201,4 +201,4 @@ ALTER TABLE "file_processing_logs" ADD CONSTRAINT "file_processing_logs_job_id_f
 ALTER TABLE "batch_statistics" ADD CONSTRAINT "batch_statistics_job_id_fkey" FOREIGN KEY ("job_id") REFERENCES "refinement_jobs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "processing_queue" ADD CONSTRAINT "processing_queue_job_id_fkey" FOREIGN KEY ("job_id") REFERENCES "refinement_jobs"("id") ON DELETE CASCADE ON UPDATE CASCADE; 
+ALTER TABLE "processing_queue" ADD CONSTRAINT "processing_queue_job_id_fkey" FOREIGN KEY ("job_id") REFERENCES "refinement_jobs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
