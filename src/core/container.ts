@@ -8,8 +8,11 @@ import { FileProcessingService } from '../services/file-processing.service';
 import { BatchStatisticsService } from '../services/batch-statistics.service';
 import { SystemConfigService } from '../services/system-config.service';
 import { JobSchedulerService } from '../services/job-scheduler.service';
+import { LoggingService } from '../services/logging.service';
+import { HealthMonitoringService } from '../services/health-monitoring.service';
 import { HybridConfigService } from '../config/hybrid-config';
 import { BatchProcessor } from './batch-processor';
+import { prisma } from '../database/client';
 
 export interface ServiceContainer {
   refinementJobService: RefinementJobService;
@@ -17,6 +20,8 @@ export interface ServiceContainer {
   batchStatisticsService: BatchStatisticsService;
   systemConfigService: SystemConfigService;
   jobSchedulerService: JobSchedulerService;
+  loggingService: LoggingService;
+  healthMonitoringService: HealthMonitoringService;
   hybridConfigService: HybridConfigService;
   batchProcessor: BatchProcessor;
 }
@@ -53,6 +58,13 @@ export class Container {
     this.services.fileProcessingService = new FileProcessingService();
     this.services.refinementJobService = new RefinementJobService();
     this.services.jobSchedulerService = new JobSchedulerService();
+    this.services.loggingService = new LoggingService();
+    this.services.healthMonitoringService = new HealthMonitoringService(
+      this.services.jobSchedulerService,
+      this.services.batchStatisticsService,
+      this.services.systemConfigService,
+      prisma
+    );
     this.services.batchProcessor = new BatchProcessor();
 
     // Initialize hybrid configuration with environment overrides
@@ -126,6 +138,20 @@ export class Container {
   }
 
   /**
+   * Get logging service
+   */
+  getLoggingService(): LoggingService {
+    return this.getServices().loggingService;
+  }
+
+  /**
+   * Get health monitoring service
+   */
+  getHealthMonitoringService(): HealthMonitoringService {
+    return this.getServices().healthMonitoringService;
+  }
+
+  /**
    * Reset container (for testing)
    */
   reset(): void {
@@ -151,6 +177,8 @@ export class Container {
       serviceChecks.fileProcessingService = !!this.services.fileProcessingService;
       serviceChecks.batchStatisticsService = !!this.services.batchStatisticsService;
       serviceChecks.jobSchedulerService = !!this.services.jobSchedulerService;
+      serviceChecks.loggingService = !!this.services.loggingService;
+      serviceChecks.healthMonitoringService = !!this.services.healthMonitoringService;
       serviceChecks.batchProcessor = !!this.services.batchProcessor;
 
       // Test basic functionality
