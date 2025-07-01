@@ -332,51 +332,178 @@ grep "ERROR" logs/application.log | jq
 
 ## 🔧 Configuration
 
-### Environment Variables
+The service uses a **Hybrid Configuration System** that combines:
+- **Environment Variables**: Static, security-sensitive configuration (requires restart)
+- **Database Configuration**: Dynamic, business logic configuration (hot-reloadable)
 
+### Environment Variables (Static Configuration)
+
+Create a `.env` file with the following variables:
+
+#### Application & Server
 ```bash
-# Database Configuration
-DATABASE_URL=postgresql://user:password@localhost:5432/batch_refinement
-
-# API Server Configuration
-API_PORT=3000
-NODE_ENV=production
-CORS_ORIGIN=http://localhost:3001
-
-# Authentication
-JWT_SECRET=your-super-secret-jwt-key
-API_KEY=your-api-key-for-development
-ADMIN_API_KEY=your-admin-api-key
-
-# Blockchain Configuration
-DLP_PRIVATE_KEY=your_private_key
-DLP_ADDRESS=your_address
-DATA_REGISTRY_ADDRESS=registry_address
-RPC_URL=https://rpc.moksha.vana.org
-
-# IPFS Configuration
-PINATA_API_KEY=your_pinata_api_key
-PINATA_API_SECRET=your_pinata_api_secret
-
-# Processing Configuration
-DEFAULT_BATCH_SIZE=10
-MAX_CONCURRENT_JOBS=5
-MAX_RETRIES=3
+NODE_ENV=production                                    # Application environment
+PORT=3000                                             # Server port
+LOG_LEVEL=info                                        # Logging level (error, warn, info, debug, trace)
+LOG_DIR=./logs                                        # Log directory path
 ```
 
-### Dynamic Configuration
-
-System configuration can be managed via API without service restart:
-
+#### Database
 ```bash
-# List all configuration keys
+DATABASE_URL=postgresql://user:password@localhost:5432/batch_refinement
+```
+
+#### Authentication & Security  
+```bash
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+API_KEY=your-api-key-for-development
+ADMIN_API_KEY=your-admin-api-key-with-full-access
+```
+
+#### Blockchain & DLP (Decentralized Learning Protocol)
+```bash
+DLP_PRIVATE_KEY=your_dlp_private_key                 # DLP account private key
+DLP_ADDRESS=your_dlp_wallet_address                  # DLP wallet address
+DATA_REGISTRY_ADDRESS=0x...registry_contract_address # Smart contract address
+RPC_URL=https://rpc.moksha.vana.org                  # Blockchain RPC endpoint
+```
+
+#### External APIs
+```bash
+REFINEMENT_SERVICE_API_BASE_URL=https://your-refinement-api.com
+```
+
+#### IPFS & Storage
+```bash
+PINATA_API_KEY=your_pinata_api_key                   # Optional: IPFS via Pinata
+PINATA_API_SECRET=your_pinata_api_secret             # Optional: IPFS via Pinata  
+PINATA_API_JWT=your_pinata_jwt_token                 # Optional: IPFS via Pinata
+```
+
+#### Processing Defaults (Override Database Config)
+```bash
+BATCH_SIZE=10                                        # Default batch size for processing
+MAX_FILE_ID=1000                                     # Maximum file ID to process
+REFINER_ID=7                                         # Default refiner ID
+VERBOSE=false                                        # Enable verbose logging
+```
+
+### Database Configuration (Dynamic Configuration)
+
+These settings can be changed via API **without restarting** the service:
+
+#### Processing Configuration
+| Key | Default | Description |
+|-----|---------|-------------|
+| `processing.batch_size` | `10` | Number of files processed per batch |
+| `processing.max_concurrent_jobs` | `5` | Maximum parallel jobs |
+| `processing.default_priority` | `5` | Default job priority (1-10) |
+| `processing.max_retries` | `3` | Maximum retry attempts for failed jobs |
+| `processing.retry_delay_seconds` | `300` | Delay between retry attempts |
+
+#### Cron Schedules
+| Key | Default | Description |
+|-----|---------|-------------|
+| `cron.batch_processing` | `0 */6 * * *` | Batch processing schedule (every 6 hours) |
+| `cron.cleanup_old_logs` | `0 2 * * 1` | Log cleanup schedule (Monday 2 AM) |
+| `cron.health_check` | `*/30 * * * *` | Health check schedule (every 30 minutes) |
+
+#### API Configuration
+| Key | Default | Description |
+|-----|---------|-------------|
+| `api.refinement_timeout_ms` | `30000` | API request timeout (30 seconds) |
+
+#### Feature Flags
+| Key | Default | Description |
+|-----|---------|-------------|
+| `features.auto_retry` | `true` | Enable automatic retry for failed jobs |
+| `features.parallel_processing` | `true` | Enable parallel file processing |
+
+#### Logging Configuration
+| Key | Default | Description |
+|-----|---------|-------------|
+| `logging.level` | `info` | Runtime log level |
+| `logging.max_file_size_mb` | `10` | Maximum log file size |
+
+### Configuration Management API
+
+#### View Configuration
+```bash
+# Get all configuration
 curl http://localhost:3000/api/config
 
+# Get specific configuration group
+curl http://localhost:3000/api/config?prefix=processing
+
+# Get single configuration value
+curl http://localhost:3000/api/config/processing.batch_size
+```
+
+#### Update Configuration (Requires Admin Token)
+```bash
 # Update processing configuration
 curl -X PUT http://localhost:3000/api/config/processing.batch_size \
   -H "Content-Type: application/json" \
-  -d '{"value": "20"}'
+  -H "Authorization: Bearer <admin-token>" \
+  -d '{
+    "value": "20",
+    "description": "Increased batch size for better throughput"
+  }'
+
+# Update cron schedule
+curl -X PUT http://localhost:3000/api/config/cron.batch_processing \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <admin-token>" \
+  -d '{
+    "value": "0 */4 * * *",
+    "description": "Changed to every 4 hours for faster processing"
+  }'
+
+# Enable/disable features
+curl -X PUT http://localhost:3000/api/config/features.auto_retry \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <admin-token>" \
+  -d '{
+    "value": "false",
+    "description": "Disabled auto-retry for debugging"
+  }'
 ```
+
+#### Configuration Hot-Reload
+```bash
+# Force configuration refresh
+curl -X POST http://localhost:3000/api/config/reload \
+  -H "Authorization: Bearer <admin-token>"
+
+# Validate all configuration
+curl http://localhost:3000/api/config/validate
+```
+
+#### Configuration Backup & Restore
+```bash
+# Export configuration
+curl http://localhost:3000/api/config/export > config-backup.json
+
+# Import configuration (Admin only)
+curl -X POST http://localhost:3000/api/config/import \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <admin-token>" \
+  -d @config-backup.json
+```
+
+### Configuration Validation
+
+The system validates configuration on:
+- Service startup
+- Configuration updates via API
+- Periodic health checks
+
+**Validation Rules:**
+- Batch size: 1-1000
+- Max concurrent jobs: 1-50  
+- API timeout: 1-300 seconds
+- Cron expressions: Valid 5-field format
+- Feature flags: boolean values only
 
 ---
 

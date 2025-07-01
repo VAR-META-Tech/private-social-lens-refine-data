@@ -51,9 +51,9 @@ export class BatchProcessor {
      // Get configuration from hybrid config service
      const processingConfig = await hybridConfigService.getProcessingConfig();
 
-    // Override with provided config
-    const batchSize = config.batchSize || processingConfig.batchSize;
-    const priority = config.priority || processingConfig.defaultPriority;
+    // Override with provided config - ensure numbers are properly typed
+    const batchSize = config.batchSize || Number(processingConfig.batchSize);
+    const priority = config.priority || Number(processingConfig.defaultPriority);
 
     // Create refinement job
     const job = await refinementJobService.createJob({
