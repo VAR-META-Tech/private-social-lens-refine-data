@@ -105,17 +105,17 @@ Transform the current Batch Refinement system into a long-running service with a
 
 ### Task 6.1: REST API Development
 **Dependencies: 4.2, 5.2**
-- [ ] Job management endpoints (start/stop/status)
-- [ ] Configuration management API
-- [ ] Statistics and reporting endpoints
-- [ ] Health check and metrics endpoints
+- [x] Job management endpoints (start/stop/status)
+- [x] Configuration management API
+- [x] Statistics and reporting endpoints
+- [x] Health check and metrics endpoints
 
 ### Task 6.2: API Security & Documentation
 **Dependencies: 6.1**
-- [ ] Authentication and authorization
-- [ ] Rate limiting and security headers
-- [ ] API documentation (OpenAPI/Swagger)
-- [ ] Input validation and sanitization
+- [x] Authentication and authorization
+- [x] Rate limiting and security headers
+- [x] API documentation (OpenAPI/Swagger)
+- [x] Input validation and sanitization
 
 ---
 

@@ -1,4 +1,4 @@
-git /**
+/**
  * Structured Logging Service
  * Provides production-grade logging with JSON format, levels, rotation, and integration
  */
