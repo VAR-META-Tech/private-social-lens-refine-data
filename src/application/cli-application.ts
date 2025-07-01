@@ -6,7 +6,7 @@
 import { container } from '../core/container';
 import { BatchProcessor } from '../core/batch-processor';
 import { connectDatabase } from '../database/client';
-import { initializeContract } from '../blockchain/contract';
+import { initializeContract } from '../services/blockchain.service';
 import { getEnvironmentConfig, displayEnvironmentSummary } from '../config/environment';
 
 export interface CliArguments {

@@ -1,5 +1,5 @@
 /**
- * Smart contract interaction module for batch refinement
+ * Blockchain interaction service for smart contracts
  */
 import { ethers } from 'ethers';
 import { getEnvironmentConfig } from '../config/environment';

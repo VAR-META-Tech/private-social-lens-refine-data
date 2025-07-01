@@ -6,8 +6,8 @@
 
 import { container } from './container';
 import { JobType, JobStatus } from '../generated/prisma';
-import { getFilePermissions, decryptEEK, checkFileRefinement } from '../blockchain/contract';
-import { refineFile } from '../api/refinement';
+import { getFilePermissions, decryptEEK, checkFileRefinement } from '../services/blockchain.service';
+import { refineFile } from '../services/refinement-api.service';
 
 export interface BatchProcessorConfig {
   startFileId?: number;

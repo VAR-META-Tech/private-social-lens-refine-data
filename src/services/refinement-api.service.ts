@@ -1,5 +1,5 @@
 /**
- * API module for batch refinement
+ * External refinement API service
  */
 import axios from 'axios';
 import { getEnvironmentConfig } from '@/config';
@@ -72,4 +72,4 @@ export async function refineFile(fileId: number, dataEncryptionKey: string): Pro
 
     return null;
   }
-}
+} 

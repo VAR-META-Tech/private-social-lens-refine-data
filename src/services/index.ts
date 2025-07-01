@@ -11,6 +11,18 @@ export { JobSchedulerService } from './job-scheduler.service';
 export { LoggingService, ChildLogger, logger } from './logging.service';
 export { HealthMonitoringService } from './health-monitoring.service';
 
+// External API and Blockchain services
+export { refineFile } from './refinement-api.service';
+export { 
+  initializeContract, 
+  getFileAtIndex, 
+  decryptEEK, 
+  getFilePermissions, 
+  checkFileRefinement, 
+  getProvider, 
+  isContractInitialized 
+} from './blockchain.service';
+
 // Re-export types
 export type { CreateJobParams, JobStatistics } from './refinement-job.service';
 export type { ProcessFileParams, ProcessFileError } from './file-processing.service';
