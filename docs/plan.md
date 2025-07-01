@@ -33,17 +33,17 @@ Transform the current Batch Refinement system into a long-running service with a
 
 ### Task 2.1: Core Architecture Refactor
 **Dependencies: 1.2**
-- [ ] Separate CLI logic from business logic
-- [ ] Create database service layer
-- [ ] Implement repository pattern for data access
-- [ ] Create dependency injection container
+- [x] Separate CLI logic from business logic
+- [x] Create database service layer
+- [x] Implement repository pattern for data access
+- [x] Create dependency injection container
 
 ### Task 2.2: Configuration Management
 **Dependencies: 2.1**
-- [ ] Migrate from file-based to database configuration
-- [ ] Environment-based configuration system
-- [ ] Configuration validation service
-- [ ] Hot-reload configuration support
+- [x] Migrate from file-based to database configuration
+- [x] Environment-based configuration system
+- [x] Configuration validation service
+- [x] Hot-reload configuration support
 
 ---
 
@@ -360,10 +360,10 @@ model SystemConfig {
 - [ ] Database seeding with sample data
 
 ### Phase 2 Success Criteria:
-- [ ] CLI decoupled from business logic
-- [ ] Service layer operational
-- [ ] Repository pattern implemented
-- [ ] Configuration system functional
+- [x] CLI decoupled from business logic
+- [x] Service layer operational
+- [x] Repository pattern implemented
+- [x] Configuration system functional
 
 ### Phase 3 Success Criteria:
 - [ ] File logs successfully migrated to database

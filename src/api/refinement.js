@@ -2,7 +2,7 @@
  * API module for batch refinement
  */
 const axios = require('axios');
-const { CONFIG } = require('../utils/config');
+const { CONFIG } = require('../config/legacy-adapter');
 const { logToFile } = require('../logs/logger');
 
 /**

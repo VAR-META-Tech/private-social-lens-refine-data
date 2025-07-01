@@ -1,0 +1,156 @@
+/**
+ * Dependency Injection Container
+ * Manages service instances and their dependencies
+ */
+
+import { RefinementJobService } from '../services/refinement-job.service';
+import { FileProcessingService } from '../services/file-processing.service';
+import { BatchStatisticsService } from '../services/batch-statistics.service';
+import { SystemConfigService } from '../services/system-config.service';
+import { HybridConfigService } from '../config/hybrid-config';
+
+export interface ServiceContainer {
+  refinementJobService: RefinementJobService;
+  fileProcessingService: FileProcessingService;
+  batchStatisticsService: BatchStatisticsService;
+  systemConfigService: SystemConfigService;
+  hybridConfigService: HybridConfigService;
+}
+
+export class Container {
+  private static instance: Container;
+  private services: Partial<ServiceContainer> = {};
+  private initialized = false;
+
+  /**
+   * Get singleton instance
+   */
+  static getInstance(): Container {
+    if (!Container.instance) {
+      Container.instance = new Container();
+    }
+    return Container.instance;
+  }
+
+  /**
+   * Initialize all services
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    console.log('🔧 Initializing dependency injection container...');
+
+    // Initialize services in dependency order
+    this.services.systemConfigService = new SystemConfigService();
+    this.services.hybridConfigService = new HybridConfigService(this.services.systemConfigService);
+    this.services.batchStatisticsService = new BatchStatisticsService();
+    this.services.fileProcessingService = new FileProcessingService();
+    this.services.refinementJobService = new RefinementJobService();
+
+    // Initialize hybrid configuration with environment overrides
+    await this.services.hybridConfigService.initializeWithOverrides();
+
+    this.initialized = true;
+    console.log('✅ Dependency injection container initialized');
+  }
+
+  /**
+   * Get all services
+   */
+  getServices(): ServiceContainer {
+    if (!this.initialized) {
+      throw new Error('Container not initialized. Call initialize() first.');
+    }
+
+    return this.services as ServiceContainer;
+  }
+
+  /**
+   * Get refinement job service
+   */
+  getRefinementJobService(): RefinementJobService {
+    return this.getServices().refinementJobService;
+  }
+
+  /**
+   * Get file processing service
+   */
+  getFileProcessingService(): FileProcessingService {
+    return this.getServices().fileProcessingService;
+  }
+
+  /**
+   * Get batch statistics service
+   */
+  getBatchStatisticsService(): BatchStatisticsService {
+    return this.getServices().batchStatisticsService;
+  }
+
+  /**
+   * Get system config service
+   */
+  getSystemConfigService(): SystemConfigService {
+    return this.getServices().systemConfigService;
+  }
+
+  /**
+   * Get hybrid config service
+   */
+  getHybridConfigService(): HybridConfigService {
+    return this.getServices().hybridConfigService;
+  }
+
+  /**
+   * Reset container (for testing)
+   */
+  reset(): void {
+    this.services = {};
+    this.initialized = false;
+  }
+
+  /**
+   * Health check for all services
+   */
+  async healthCheck(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    services: Record<string, boolean>;
+    timestamp: string;
+  }> {
+    const serviceChecks: Record<string, boolean> = {};
+    
+    try {
+      // Check each service
+             serviceChecks.systemConfigService = !!this.services.systemConfigService;
+       serviceChecks.hybridConfigService = !!this.services.hybridConfigService;
+       serviceChecks.refinementJobService = !!this.services.refinementJobService;
+       serviceChecks.fileProcessingService = !!this.services.fileProcessingService;
+       serviceChecks.batchStatisticsService = !!this.services.batchStatisticsService;
+
+      // Test basic functionality
+      if (this.services.systemConfigService) {
+        const testConfig = await this.services.systemConfigService.getConfig('processing.batch_size');
+        serviceChecks.systemConfigTest = testConfig !== null;
+      }
+
+      const allHealthy = Object.values(serviceChecks).every(check => check === true);
+
+      return {
+        status: allHealthy ? 'healthy' : 'unhealthy',
+        services: serviceChecks,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Container health check failed:', error);
+      return {
+        status: 'unhealthy',
+        services: serviceChecks,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+}
+
+// Export singleton instance
+export const container = Container.getInstance(); 
