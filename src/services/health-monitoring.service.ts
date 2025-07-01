@@ -68,7 +68,7 @@ export class HealthMonitoringService extends EventEmitter {
     private jobScheduler: JobSchedulerService,
     private batchStats: BatchStatisticsService,
     private systemConfig: SystemConfigService,
-    private db: DatabaseClient
+    private db: PrismaClient
   ) {
     super();
     this.loadConfiguration();
@@ -81,7 +81,7 @@ export class HealthMonitoringService extends EventEmitter {
     try {
       const alerts = await this.systemConfig.getConfig('health.alerts');
       if (alerts) {
-        this.alertConfigs = JSON.parse(alerts.value);
+        this.alertConfigs = JSON.parse(alerts);
       } else {
         this.alertConfigs = this.getDefaultAlertConfigs();
         await this.systemConfig.setConfig(
@@ -140,7 +140,7 @@ export class HealthMonitoringService extends EventEmitter {
       return;
     }
 
-    logger.info('Starting health monitoring', { intervalMs }, 'HealthMonitor');
+    logger.info('Starting health monitoring', { metadata: { intervalMs } }, 'HealthMonitor');
     
     this.isMonitoring = true;
     
@@ -221,8 +221,10 @@ export class HealthMonitoringService extends EventEmitter {
       const duration = Date.now() - startTime;
       logger.info('Health check completed', { 
         duration,
-        componentsChecked: Object.keys(results).length,
-        healthyComponents: Object.values(results).filter(r => r.status === 'healthy').length
+        metadata: {
+          componentsChecked: Object.keys(results).length,
+          healthyComponents: Object.values(results).filter(r => r.status === 'healthy').length
+        }
       }, 'HealthMonitor');
       
       return results;
@@ -327,7 +329,7 @@ export class HealthMonitoringService extends EventEmitter {
   }> {
     try {
       const startTime = Date.now();
-      await this.db.prisma.$queryRaw`SELECT 1`;
+      await this.db.$queryRaw`SELECT 1`;
       const queryTime = Date.now() - startTime;
       
       return {
@@ -348,7 +350,7 @@ export class HealthMonitoringService extends EventEmitter {
     const startTime = Date.now();
     
     try {
-      await this.db.prisma.$queryRaw`SELECT 1`;
+      await this.db.$queryRaw`SELECT 1`;
       const responseTime = Date.now() - startTime;
       
       return {
@@ -529,8 +531,10 @@ export class HealthMonitoringService extends EventEmitter {
   private async sendAlert(result: HealthCheckResult): Promise<void> {
     logger.warn('Health alert triggered', {
       component: result.component,
-      status: result.status,
-      message: result.message
+      metadata: {
+        status: result.status,
+        message: result.message
+      }
     }, 'HealthMonitor');
   }
 
@@ -539,10 +543,12 @@ export class HealthMonitoringService extends EventEmitter {
    */
   private async sendThresholdAlert(alert: AlertConfig, value: number): Promise<void> {
     logger.warn('Threshold alert triggered', {
-      alertName: alert.name,
-      threshold: alert.threshold,
-      actualValue: value,
-      severity: alert.severity
+      metadata: {
+        alertName: alert.name,
+        threshold: alert.threshold,
+        actualValue: value,
+        severity: alert.severity
+      }
     }, 'HealthMonitor');
   }
 
@@ -578,6 +584,6 @@ export class HealthMonitoringService extends EventEmitter {
       'Health monitoring alert configurations'
     );
     
-    logger.info('Alert configurations updated', { alertCount: alerts.length }, 'HealthMonitor');
+    logger.info('Alert configurations updated', { metadata: { alertCount: alerts.length } }, 'HealthMonitor');
   }
 } 

@@ -621,6 +621,15 @@ export class JobSchedulerService {
   }
 
   /**
+   * Get all jobs from database
+   */
+  async getAllJobs(): Promise<RefinementJob[]> {
+    return await prisma.refinementJob.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  /**
    * Get scheduler status and statistics
    */
   async getStatus(): Promise<{
