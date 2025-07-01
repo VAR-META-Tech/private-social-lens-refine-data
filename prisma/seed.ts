@@ -19,7 +19,6 @@ async function main() {
       await prisma.batchStatistic.deleteMany();
       await prisma.refinementJob.deleteMany();
       await prisma.systemConfig.deleteMany();
-      await prisma.schemaVersion.deleteMany();
     }
 
     // Seed SystemConfig
@@ -113,14 +112,7 @@ async function main() {
       ],
     });
 
-    // Seed SchemaVersion
-    console.log('📊 Recording schema version...');
-    await prisma.schemaVersion.create({
-      data: {
-        version: '1.0.0',
-        description: 'Initial schema with all core tables and Prisma setup',
-      },
-    });
+
 
     // Seed RefinementJobs
     console.log('🔨 Seeding refinement jobs...');
@@ -305,7 +297,6 @@ async function main() {
     const summary = await getSeedingSummary();
     console.log('\n📊 Seeding Summary:');
     console.log(`  System Configs: ${summary.systemConfigs}`);
-    console.log(`  Schema Versions: ${summary.schemaVersions}`);
     console.log(`  Refinement Jobs: ${summary.refinementJobs}`);
     console.log(`  File Processing Logs: ${summary.fileProcessingLogs}`);
     console.log(`  Batch Statistics: ${summary.batchStatistics}`);
@@ -320,14 +311,12 @@ async function main() {
 async function getSeedingSummary() {
   const [
     systemConfigs,
-    schemaVersions,
     refinementJobs,
     fileProcessingLogs,
     batchStatistics,
     processingQueue,
   ] = await Promise.all([
     prisma.systemConfig.count(),
-    prisma.schemaVersion.count(),
     prisma.refinementJob.count(),
     prisma.fileProcessingLog.count(),
     prisma.batchStatistic.count(),
@@ -336,7 +325,6 @@ async function getSeedingSummary() {
 
   return {
     systemConfigs,
-    schemaVersions,
     refinementJobs,
     fileProcessingLogs,
     batchStatistics,
@@ -351,4 +339,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

@@ -69,7 +69,6 @@ async function runValidationTests(): Promise<TestResult[]> {
       BatchStatistic: prisma.batchStatistic,
       ProcessingQueue: prisma.processingQueue,
       SystemConfig: prisma.systemConfig,
-      SchemaVersion: prisma.schemaVersion,
     };
 
     const modelsExist = Object.keys(modelTests).every(model => 
@@ -197,7 +196,7 @@ async function runValidationTests(): Promise<TestResult[]> {
 
     results.push({
       name: 'Basic CRUD Operations',
-      passed: crudSuccess,
+      passed: !!crudSuccess,
       details: { 
         created: !!testConfig,
         read: !!readConfig,
@@ -259,7 +258,7 @@ async function runValidationTests(): Promise<TestResult[]> {
 
     results.push({
       name: 'Model Relations',
-      passed: relationsWork,
+      passed: !!relationsWork,
       details: { 
         jobCreated: !!testJob,
         logCreated: !!testLog,

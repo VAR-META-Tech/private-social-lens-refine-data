@@ -202,10 +202,4 @@ model SystemConfig {
   @@index([updatedAt])
 }
 
-model SchemaVersion {
-  version     String   @id
-  description String?
-  appliedAt   DateTime @default(now()) @map("applied_at")
 
-  @@map("schema_version")
-}

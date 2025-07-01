@@ -122,15 +122,6 @@ CREATE TABLE "system_config" (
     CONSTRAINT "system_config_pkey" PRIMARY KEY ("key")
 );
 
--- CreateTable
-CREATE TABLE "schema_version" (
-    "version" TEXT NOT NULL,
-    "description" TEXT,
-    "applied_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "schema_version_pkey" PRIMARY KEY ("version")
-);
-
 -- CreateIndex
 CREATE INDEX "refinement_jobs_status_idx" ON "refinement_jobs"("status");
 
