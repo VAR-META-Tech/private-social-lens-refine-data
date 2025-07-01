@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  RETRYING
+}
+
+enum JobType {
+  SCHEDULED_BATCH
+  RANGE_BASED
+  CLEANUP
+  HEALTH_CHECK
+  MANUAL
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  SKIPPED
+  ALREADY_REFINED
+}
+
+enum QueueStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+enum ConfigDataType {
+  STRING
+  INTEGER
+  BOOLEAN
+  JSON
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model RefinementJob {
+  id              String    @id @default(cuid())
+  jobName         String    @map("job_name")
+  jobType         JobType   @map("job_type")
+  cronSchedule    String?   @map("cron_schedule")
+  startFileId     Int?      @map("start_file_id")
+  endFileId       Int?      @map("end_file_id")
+  startIndex      Int?      @map("start_index")
+  endIndex        Int?      @map("end_index")
+  batchSize       Int       @default(10) @map("batch_size")
+  status          JobStatus @default(PENDING)
+  priority        Int       @default(5)
+  maxRetries      Int       @default(3) @map("max_retries")
+  retryCount      Int       @default(0) @map("retry_count")
+  retryDelaySeconds Int     @default(300) @map("retry_delay_seconds")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  scheduledAt     DateTime? @map("scheduled_at")
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  nextRetryAt     DateTime? @map("next_retry_at")
+  errorMessage    String?   @map("error_message")
+  metadata        Json?
+  createdBy       String    @default("system") @map("created_by")
+
+  // Relations
+  fileProcessingLogs FileProcessingLog[]
+  batchStatistics    BatchStatistic[]
+  processingQueue    ProcessingQueue[]
+
+  @@map("refinement_jobs")
+  @@index([status])
+  @@index([jobType])
+  @@index([createdAt])
+  @@index([scheduledAt])
+  @@index([nextRetryAt])
+  @@index([status, priority])
+}
+
+model FileProcessingLog {
+  id                      String           @id @default(cuid())
+  jobId                   String           @map("job_id")
+  fileId                  Int              @map("file_id")
+  status                  ProcessingStatus
+  message                 String?
+  errorDetails            Json?            @map("error_details")
+  processingTimeMs        Int?             @map("processing_time_ms")
+  ipfsHash                String?          @map("ipfs_hash")
+  encryptedEek            String?          @map("encrypted_eek")
+  decryptedEekLength      Int?             @map("decrypted_eek_length")
+  refinementApiResponse   Json?            @map("refinement_api_response")
+  gasUsed                 BigInt?          @map("gas_used")
+  transactionHash         String?          @map("transaction_hash")
+  createdAt               DateTime         @default(now()) @map("created_at")
+  processedAt             DateTime?        @map("processed_at")
+
+  // Relations
+  refinementJob RefinementJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("file_processing_logs")
+  @@index([jobId])
+  @@index([fileId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([jobId, status])
+  @@index([fileId, status])
+}
+
+model BatchStatistic {
+  id                      String    @id @default(cuid())
+  jobId                   String    @map("job_id")
+  batchStartFileId        Int?      @map("batch_start_file_id")
+  batchEndFileId          Int?      @map("batch_end_file_id")
+  batchStartIndex         Int?      @map("batch_start_index")
+  batchEndIndex           Int?      @map("batch_end_index")
+  totalFiles              Int       @default(0) @map("total_files")
+  alreadyRefinedCount     Int       @default(0) @map("already_refined_count")
+  processedCount          Int       @default(0) @map("processed_count")
+  successCount            Int       @default(0) @map("success_count")
+  failedCount             Int       @default(0) @map("failed_count")
+  skippedCount            Int       @default(0) @map("skipped_count")
+  totalProcessingTimeMs   BigInt    @default(0) @map("total_processing_time_ms")
+  averageProcessingTimeMs Int       @default(0) @map("average_processing_time_ms")
+  totalGasUsed            BigInt    @default(0) @map("total_gas_used")
+  batchStartTime          DateTime? @map("batch_start_time")
+  batchEndTime            DateTime? @map("batch_end_time")
+  createdAt               DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  refinementJob RefinementJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("batch_statistics")
+  @@index([jobId])
+  @@index([createdAt])
+}
+
+model ProcessingQueue {
+  id               String      @id @default(cuid())
+  jobId            String      @map("job_id")
+  fileId           Int         @map("file_id")
+  queuePosition    Int?        @map("queue_position")
+  status           QueueStatus @default(QUEUED)
+  priority         Int         @default(5)
+  attempts         Int         @default(0)
+  maxAttempts      Int         @default(3) @map("max_attempts")
+  scheduledAt      DateTime    @default(now()) @map("scheduled_at")
+  startedAt        DateTime?   @map("started_at")
+  completedAt      DateTime?   @map("completed_at")
+  nextAttemptAt    DateTime?   @map("next_attempt_at")
+  errorMessage     String?     @map("error_message")
+  processingNode   String?     @map("processing_node")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  refinementJob RefinementJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("processing_queue")
+  @@unique([jobId, fileId])
+  @@index([status])
+  @@index([jobId])
+  @@index([priority, scheduledAt])
+  @@index([scheduledAt])
+  @@index([nextAttemptAt])
+}
+
+model SystemConfig {
+  key         String           @id
+  value       String
+  description String?
+  dataType    ConfigDataType   @default(STRING) @map("data_type")
+  isEncrypted Boolean          @default(false) @map("is_encrypted")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  updatedBy   String           @default("system") @map("updated_by")
+
+  @@map("system_config")
+  @@index([updatedAt])
+}
+
+model SchemaVersion {
+  version     String   @id
+  description String?
+  appliedAt   DateTime @default(now()) @map("applied_at")
+
+  @@map("schema_version")
+}

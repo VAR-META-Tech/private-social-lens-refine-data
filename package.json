@@ -5,12 +5,28 @@
   "main": "src/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.10.1",
+    "@types/node": "^24.0.8",
     "axios": "^1.6.0",
     "dotenv": "^16.3.1",
     "eccrypto": "^1.1.6",
-    "ethers": "^5.7.2"
+    "ethers": "^5.7.2",
+    "node-cron": "^4.2.0",
+    "prisma": "^6.10.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
   }
 }
