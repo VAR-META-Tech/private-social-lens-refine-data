@@ -5,9 +5,9 @@
 
 import { Router, Request, Response } from 'express';
 import Joi from 'joi';
-import { container } from '../../core/container.js';
-import { asyncHandler, createApiError } from '../middleware/error-handler.js';
-import { AuthenticatedRequest, requirePermission, requireRole } from '../middleware/auth.js';
+import { container } from '@/core';
+import { asyncHandler, createApiError } from '@/api';
+import { AuthenticatedRequest, requirePermission, requireRole } from '@/api';
 
 const router = Router();
 
@@ -71,7 +71,7 @@ const configCreateSchema = Joi.object({
  */
 router.get('/', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
-  
+
   const category = req.query.category as string;
   const includeEncrypted = req.query.includeEncrypted === 'true';
 
@@ -212,10 +212,10 @@ router.post('/', requireRole(['admin']), asyncHandler(async (req: AuthenticatedR
   }
 
   await systemConfig.setConfig(
-    value.key, 
-    value.value, 
-    value.description, 
-    value.dataType, 
+    value.key,
+    value.value,
+    value.description,
+    value.dataType,
     req.user?.id || 'api-user'
   );
 
@@ -361,12 +361,12 @@ router.delete('/:key', requireRole(['admin']), asyncHandler(async (req: Authenti
  */
 router.get('/categories', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
-  
+
   const allConfig = await systemConfig.getAllConfig();
-  
+
   // Group by category (prefix before first dot)
   const categoryMap = new Map<string, number>();
-  
+
   allConfig.forEach(config => {
     const category = config.key.split('.')[0];
     categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
@@ -401,7 +401,7 @@ router.get('/categories', requirePermission('read'), asyncHandler(async (req: Au
 //  */
 // router.post('/reload', requireRole(['admin']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
 //   const systemConfig = container.getSystemConfigService();
-  
+
 //   await systemConfig.reloadConfig();
 
 //   res.json({
@@ -428,4 +428,4 @@ function getCategoryDescription(category: string): string {
   return descriptions[category] || 'Custom configuration category';
 }
 
-export default router; 
+export default router;

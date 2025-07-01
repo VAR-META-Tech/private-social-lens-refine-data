@@ -3,13 +3,13 @@
  * Handles individual file processing and logging
  */
 
-import { prisma } from '../database/client';
-import { 
-  FileProcessingLog, 
+import { prisma } from '@/database/client';
+import {
+  FileProcessingLog,
   ProcessingStatus,
   ProcessingQueue,
-  QueueStatus 
-} from '../generated/prisma';
+  QueueStatus
+} from '@/generated/prisma';
 
 export interface ProcessFileParams {
   jobId: string;
@@ -199,8 +199,8 @@ export class FileProcessingService {
    * Update queue status
    */
   private async updateQueueStatus(
-    jobId: string, 
-    fileId: number, 
+    jobId: string,
+    fileId: number,
     status: QueueStatus
   ): Promise<void> {
     try {
@@ -224,8 +224,8 @@ export class FileProcessingService {
    * Create processing queue entries for a job
    */
   async createQueueEntries(
-    jobId: string, 
-    fileIds: number[], 
+    jobId: string,
+    fileIds: number[],
     priority: number = 5
   ): Promise<void> {
     const queueEntries = fileIds.map((fileId, index) => ({
@@ -266,4 +266,4 @@ export class FileProcessingService {
       }
     });
   }
-} 
+}

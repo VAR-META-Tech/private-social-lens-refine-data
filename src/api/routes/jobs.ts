@@ -5,9 +5,9 @@
 
 import { Router, Request, Response } from 'express';
 import Joi from 'joi';
-import { container } from '../../core/container.js';
-import { asyncHandler, createApiError } from '../middleware/error-handler.js';
-import { AuthenticatedRequest, requirePermission } from '../middleware/auth.js';
+import { container } from '@/core';
+import { asyncHandler, createApiError } from '@/api';
+import { AuthenticatedRequest, requirePermission } from '@/api';
 
 const router = Router();
 
@@ -102,12 +102,12 @@ const updateJobSchema = Joi.object({
  */
 router.get('/', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const filters = {
     status: req.query.status as string,
     jobType: req.query.jobType as string
   };
-  
+
   const pagination = {
     limit: Math.min(parseInt(req.query.limit as string) || 20, 100),
     offset: parseInt(req.query.offset as string) || 0
@@ -155,7 +155,7 @@ router.get('/', requirePermission('read'), asyncHandler(async (req: Authenticate
 router.get('/:jobId', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
   const batchStats = container.getBatchStatisticsService();
-  
+
   const job = await jobScheduler.getJobById(req.params.jobId);
   if (!job) {
     throw createApiError('Job not found', 404, 'JOB_NOT_FOUND');
@@ -217,7 +217,7 @@ router.post('/', requirePermission('write'), asyncHandler(async (req: Authentica
   }
 
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const jobData = {
     ...value,
     createdBy: req.user?.id || 'api-user'
@@ -276,7 +276,7 @@ router.put('/:jobId', requirePermission('write'), asyncHandler(async (req: Authe
   }
 
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const job = await jobScheduler.getJobById(req.params.jobId);
   if (!job) {
     throw createApiError('Job not found', 404, 'JOB_NOT_FOUND');
@@ -322,7 +322,7 @@ router.put('/:jobId', requirePermission('write'), asyncHandler(async (req: Authe
  */
 router.post('/:jobId/start', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const job = await jobScheduler.getJobById(req.params.jobId);
   if (!job) {
     throw createApiError('Job not found', 404, 'JOB_NOT_FOUND');
@@ -368,7 +368,7 @@ router.post('/:jobId/start', requirePermission('write'), asyncHandler(async (req
  */
 router.post('/:jobId/stop', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const job = await jobScheduler.getJobById(req.params.jobId);
   if (!job) {
     throw createApiError('Job not found', 404, 'JOB_NOT_FOUND');
@@ -414,7 +414,7 @@ router.post('/:jobId/stop', requirePermission('write'), asyncHandler(async (req:
  */
 router.post('/:jobId/retry', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const job = await jobScheduler.getJobById(req.params.jobId);
   if (!job) {
     throw createApiError('Job not found', 404, 'JOB_NOT_FOUND');
@@ -460,7 +460,7 @@ router.post('/:jobId/retry', requirePermission('write'), asyncHandler(async (req
  */
 router.delete('/:jobId', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const job = await jobScheduler.getJobById(req.params.jobId);
   if (!job) {
     throw createApiError('Job not found', 404, 'JOB_NOT_FOUND');
@@ -525,7 +525,7 @@ router.delete('/:jobId', requirePermission('write'), asyncHandler(async (req: Au
  */
 router.get('/:jobId/logs', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const job = await jobScheduler.getJobById(req.params.jobId);
   if (!job) {
     throw createApiError('Job not found', 404, 'JOB_NOT_FOUND');
@@ -535,7 +535,7 @@ router.get('/:jobId/logs', requirePermission('read'), asyncHandler(async (req: A
     jobId: req.params.jobId,
     status: req.query.status as string
   };
-  
+
   const pagination = {
     limit: Math.min(parseInt(req.query.limit as string) || 100, 1000),
     offset: parseInt(req.query.offset as string) || 0
@@ -558,4 +558,4 @@ router.get('/:jobId/logs', requirePermission('read'), asyncHandler(async (req: A
   });
 }));
 
-export default router; 
+export default router;

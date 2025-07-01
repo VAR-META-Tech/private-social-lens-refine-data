@@ -4,8 +4,8 @@
  * Replaces manual CLI execution with automated cron jobs
  */
 
-import { container } from '../core/container';
-import { JobType } from '../generated/prisma';
+import { container } from '@/core';
+import { JobType } from '@/generated/prisma';
 
 export class ServiceApplication {
   private isRunning = false;
@@ -64,7 +64,7 @@ export class ServiceApplication {
 
       this.isRunning = false;
       console.log('✅ Batch Refinement Service stopped gracefully');
-      
+
     } catch (error) {
       console.error('❌ Error during service shutdown:', error);
     }
@@ -183,7 +183,7 @@ export class ServiceApplication {
 
     try {
       const status = await this.getStatus();
-      
+
       console.log('📊 Service Status:');
       console.log(`  - Running: ${status.isRunning}`);
       console.log(`  - Uptime: ${Math.round(status.uptime)}s`);
@@ -229,7 +229,7 @@ export class ServiceApplication {
 
       console.log('\n📋 Recent Jobs:');
       status.recentJobs.forEach((job: any, index: number) => {
-        const duration = job.completedAt && job.startedAt 
+        const duration = job.completedAt && job.startedAt
           ? Math.round((new Date(job.completedAt).getTime() - new Date(job.startedAt).getTime()) / 1000)
           : null;
 
@@ -277,7 +277,7 @@ export class ServiceApplication {
 
     process.on('SIGINT', () => shutdown('SIGINT'));
     process.on('SIGTERM', () => shutdown('SIGTERM'));
-    
+
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
       console.error('❌ Uncaught Exception:', error);
@@ -289,4 +289,4 @@ export class ServiceApplication {
       shutdown('REJECTION').then(() => process.exit(1));
     });
   }
-} 
+}

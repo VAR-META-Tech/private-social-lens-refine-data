@@ -5,9 +5,9 @@
  */
 
 import { container } from './container';
-import { JobType, JobStatus } from '../generated/prisma';
-import { getFilePermissions, decryptEEK, checkFileRefinement } from '../services/blockchain.service';
-import { refineFile } from '../services/refinement-api.service';
+import { JobType } from '@/generated/prisma';
+import { getFilePermissions, decryptEEK, checkFileRefinement } from '@/services';
+import { refineFile } from '@/services';
 
 export interface BatchProcessorConfig {
   startFileId?: number;
@@ -38,7 +38,7 @@ export class BatchProcessor {
    */
   async processByFileRange(config: BatchProcessorConfig): Promise<ProcessingResult> {
     const startTime = Date.now();
-    
+
     if (!config.startFileId || !config.endFileId) {
       throw new Error('startFileId and endFileId are required for file range processing');
     }
@@ -47,10 +47,10 @@ export class BatchProcessor {
 
          // Get services
      const { refinementJobService, fileProcessingService, batchStatisticsService, hybridConfigService } = container.getServices();
-     
+
      // Get configuration from hybrid config service
      const processingConfig = await hybridConfigService.getProcessingConfig();
-    
+
     // Override with provided config
     const batchSize = config.batchSize || processingConfig.batchSize;
     const priority = config.priority || processingConfig.defaultPriority;
@@ -96,7 +96,7 @@ export class BatchProcessor {
 
       for (let i = 0; i < fileIds.length; i += batchSize) {
         const batchFileIds = fileIds.slice(i, i + batchSize);
-        
+
         // Process batch in parallel
         const batchResults = await Promise.allSettled(
           batchFileIds.map(fileId => this.processFile(job.id, fileId))
@@ -155,7 +155,7 @@ export class BatchProcessor {
 
     } catch (error) {
       console.error(`❌ Batch processing failed:`, error);
-      
+
       // Mark job as failed
       await refinementJobService.setJobError(job.id, error instanceof Error ? error.message : 'Unknown error');
 
@@ -283,7 +283,7 @@ export class BatchProcessor {
     } catch (error) {
       const processingTimeMs = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       await fileProcessingService.logFailure({
         jobId,
         fileId,
@@ -306,7 +306,7 @@ export class BatchProcessor {
    */
   async getJobStatus(jobId: string) {
     const { refinementJobService, batchStatisticsService } = container.getServices();
-    
+
     const job = await refinementJobService.getJob(jobId);
     const stats = await batchStatisticsService.getBatchStats(jobId);
 
@@ -315,4 +315,4 @@ export class BatchProcessor {
       statistics: stats
     };
   }
-} 
+}

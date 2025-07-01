@@ -3,7 +3,7 @@
  * Single instance of Prisma client with proper configuration
  */
 
-import { PrismaClient, Prisma } from '../generated/prisma';
+import { PrismaClient, Prisma } from '@/generated/prisma';
 
 // Global variable for Prisma client instance
 declare global {
@@ -24,12 +24,12 @@ function createPrismaClient(): PrismaClient {
       const before = Date.now();
       const result = await next(params);
       const after = Date.now();
-      
+
       const duration = after - before;
       if (duration > 1000) {
         console.warn(`⚠️ Slow query detected: ${params.model}.${params.action} (${duration}ms)`);
       }
-      
+
       return result;
     });
   }
@@ -103,7 +103,7 @@ export async function getDatabaseInfo() {
     const result = await prisma.$queryRaw<Array<{ version: string }>>`
       SELECT version() as version
     `;
-    
+
     return {
       connected: true,
       version: result[0]?.version || 'Unknown',
@@ -123,11 +123,11 @@ export async function getDatabaseInfo() {
  */
 export async function healthCheck() {
   const startTime = Date.now();
-  
+
   try {
     await prisma.$queryRaw`SELECT 1 as health_check`;
     const responseTime = Date.now() - startTime;
-    
+
     return {
       status: 'healthy',
       responseTime,
@@ -156,4 +156,4 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-export default prisma; 
+export default prisma;

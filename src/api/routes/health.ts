@@ -4,8 +4,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { container } from '../../core/container.js';
-import { asyncHandler } from '../middleware/error-handler.js';
+import { container } from '@/core';
+import { asyncHandler } from '@/api';
 
 const router = Router();
 
@@ -74,7 +74,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
  */
 router.get('/detailed', asyncHandler(async (req: Request, res: Response) => {
   const healthService = container.getHealthMonitoringService();
-  
+
   const healthChecks = await healthService.performFullHealthCheck();
   const systemMetrics = await healthService.collectSystemMetrics();
 
@@ -153,10 +153,10 @@ router.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
 router.get('/readiness', asyncHandler(async (req: Request, res: Response) => {
   const healthService = container.getHealthMonitoringService();
   const healthChecks = await healthService.performFullHealthCheck();
-  
+
   const checkValues = Object.values(healthChecks);
   const isReady = checkValues.every(check => check.status === 'healthy');
-  
+
   if (isReady) {
     res.json({
       status: 'ready',
@@ -193,4 +193,4 @@ router.get('/liveness', asyncHandler(async (req: Request, res: Response) => {
   });
 }));
 
-export default router; 
+export default router;

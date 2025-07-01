@@ -3,16 +3,16 @@
  * Manages service instances and their dependencies
  */
 
-import { RefinementJobService } from '../services/refinement-job.service';
-import { FileProcessingService } from '../services/file-processing.service';
-import { BatchStatisticsService } from '../services/batch-statistics.service';
-import { SystemConfigService } from '../services/system-config.service';
-import { JobSchedulerService } from '../services/job-scheduler.service';
-import { LoggingService } from '../services/logging.service';
-import { HealthMonitoringService } from '../services/health-monitoring.service';
-import { HybridConfigService } from '../config/hybrid-config';
+import { RefinementJobService } from '@/services';
+import { FileProcessingService } from '@/services';
+import { BatchStatisticsService } from '@/services';
+import { SystemConfigService } from '@/services';
+import { JobSchedulerService } from '@/services';
+import { LoggingService } from '@/services';
+import { HealthMonitoringService } from '@/services';
+import { HybridConfigService } from '@/config';
 import { BatchProcessor } from './batch-processor';
-import { prisma } from '../database/client';
+import { prisma } from '@/database/client';
 
 export interface ServiceContainer {
   refinementJobService: RefinementJobService;
@@ -168,7 +168,7 @@ export class Container {
     timestamp: string;
   }> {
     const serviceChecks: Record<string, boolean> = {};
-    
+
     try {
       // Check each service
       serviceChecks.systemConfigService = !!this.services.systemConfigService;
@@ -206,4 +206,4 @@ export class Container {
 }
 
 // Export singleton instance
-export const container = Container.getInstance(); 
+export const container = Container.getInstance();

@@ -8,7 +8,6 @@ import { logger } from './logging.service.js';
 import { JobSchedulerService } from './job-scheduler.service.js';
 import { BatchStatisticsService } from './batch-statistics.service.js';
 import { SystemConfigService } from './system-config.service.js';
-import { prisma } from '../database/client.js';
 import type { PrismaClient } from '@prisma/client';
 import os from 'os';
 
@@ -141,12 +140,12 @@ export class HealthMonitoringService extends EventEmitter {
     }
 
     logger.info('Starting health monitoring', { metadata: { intervalMs } }, 'HealthMonitor');
-    
+
     this.isMonitoring = true;
-    
+
     // Perform initial health check
     await this.performFullHealthCheck();
-    
+
     // Start periodic monitoring
     this.monitoringInterval = setInterval(async () => {
       await this.performFullHealthCheck();
@@ -162,9 +161,9 @@ export class HealthMonitoringService extends EventEmitter {
     }
 
     logger.info('Stopping health monitoring', {}, 'HealthMonitor');
-    
+
     this.isMonitoring = false;
-    
+
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = undefined;
@@ -176,12 +175,12 @@ export class HealthMonitoringService extends EventEmitter {
    */
   async performFullHealthCheck(): Promise<Record<string, HealthCheckResult>> {
     const startTime = Date.now();
-    
+
     try {
       // Collect system metrics
       const metrics = await this.collectSystemMetrics();
       this.addMetrics(metrics);
-      
+
       // Perform individual health checks
       const healthChecks = await Promise.allSettled([
         this.checkDatabaseHealth(),
@@ -190,15 +189,15 @@ export class HealthMonitoringService extends EventEmitter {
       ]);
 
       const results: Record<string, HealthCheckResult> = {};
-      
+
       healthChecks.forEach((check, index) => {
         const componentNames = ['database', 'job-scheduler', 'system-resources'];
         const component = componentNames[index];
-        
+
         if (check.status === 'fulfilled') {
           results[component] = check.value;
           this.healthChecks.set(component, check.value);
-          
+
           if (check.value.status !== 'healthy') {
             this.emit('health-check-failed', check.value);
           }
@@ -217,18 +216,18 @@ export class HealthMonitoringService extends EventEmitter {
 
       // Check alert thresholds
       this.checkAlertThresholds(metrics);
-      
+
       const duration = Date.now() - startTime;
-      logger.info('Health check completed', { 
+      logger.info('Health check completed', {
         duration,
         metadata: {
           componentsChecked: Object.keys(results).length,
           healthyComponents: Object.values(results).filter(r => r.status === 'healthy').length
         }
       }, 'HealthMonitor');
-      
+
       return results;
-      
+
     } catch (error) {
       logger.error('Failed to perform health check', error as Error, {}, 'HealthMonitor');
       throw error;
@@ -267,14 +266,14 @@ export class HealthMonitoringService extends EventEmitter {
     return new Promise((resolve) => {
       const startUsage = process.cpuUsage();
       const startTime = Date.now();
-      
+
       setTimeout(() => {
         const endUsage = process.cpuUsage(startUsage);
         const endTime = Date.now();
         const totalTime = (endTime - startTime) * 1000; // Convert to microseconds
-        
+
         const cpuPercent = ((endUsage.user + endUsage.system) / totalTime) * 100;
-        
+
         resolve({
           usage: Math.round(cpuPercent * 100) / 100,
           loadAverage: os.loadavg()
@@ -291,7 +290,7 @@ export class HealthMonitoringService extends EventEmitter {
     const free = os.freemem();
     const used = total - free;
     const percentage = Math.round((used / total) * 100 * 100) / 100;
-    
+
     return { total, used, free, percentage };
   }
 
@@ -306,7 +305,7 @@ export class HealthMonitoringService extends EventEmitter {
   }> {
     try {
       const jobs = await this.jobScheduler.getAllJobs();
-      
+
       return {
         active: jobs.filter(j => j.status === 'RUNNING').length,
         queued: jobs.filter(j => j.status === 'PENDING').length,
@@ -331,7 +330,7 @@ export class HealthMonitoringService extends EventEmitter {
       const startTime = Date.now();
       await this.db.$queryRaw`SELECT 1`;
       const queryTime = Date.now() - startTime;
-      
+
       return {
         connectionCount: 1,
         queryTime,
@@ -348,11 +347,11 @@ export class HealthMonitoringService extends EventEmitter {
    */
   private async checkDatabaseHealth(): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       await this.db.$queryRaw`SELECT 1`;
       const responseTime = Date.now() - startTime;
-      
+
       return {
         component: 'database',
         status: responseTime < 1000 ? 'healthy' : 'warning',
@@ -379,20 +378,20 @@ export class HealthMonitoringService extends EventEmitter {
       const jobs = await this.jobScheduler.getAllJobs();
       const runningJobs = jobs.filter(j => j.status === 'RUNNING');
       const failedJobs = jobs.filter(j => j.status === 'FAILED');
-      
+
       let status: 'healthy' | 'warning' | 'critical' = 'healthy';
       let message = `${jobs.length} total jobs, ${runningJobs.length} running`;
-      
+
       if (failedJobs.length > 5) {
         status = 'warning';
         message += `, ${failedJobs.length} failed`;
       }
-      
+
       if (runningJobs.length > 10) {
         status = 'warning';
         message += ' (high job count)';
       }
-      
+
       return {
         component: 'job-scheduler',
         status,
@@ -420,10 +419,10 @@ export class HealthMonitoringService extends EventEmitter {
   private async checkSystemResourceHealth(): Promise<HealthCheckResult> {
     const memory = this.getMemoryInfo();
     const cpu = await this.getCpuUsage();
-    
+
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
     const issues: string[] = [];
-    
+
     if (memory.percentage > 90) {
       status = 'critical';
       issues.push(`memory at ${memory.percentage}%`);
@@ -431,7 +430,7 @@ export class HealthMonitoringService extends EventEmitter {
       status = 'warning';
       issues.push(`memory at ${memory.percentage}%`);
     }
-    
+
     if (cpu.usage > 90) {
       status = 'critical';
       issues.push(`CPU at ${cpu.usage}%`);
@@ -439,11 +438,11 @@ export class HealthMonitoringService extends EventEmitter {
       status = 'warning';
       issues.push(`CPU at ${cpu.usage}%`);
     }
-    
-    const message = issues.length > 0 
+
+    const message = issues.length > 0
       ? `High resource usage: ${issues.join(', ')}`
       : `CPU: ${cpu.usage}%, Memory: ${memory.percentage}%`;
-    
+
     return {
       component: 'system-resources',
       status,
@@ -462,12 +461,12 @@ export class HealthMonitoringService extends EventEmitter {
    */
   private addMetrics(metrics: SystemMetrics): void {
     this.metrics.push(metrics);
-    
+
     // Keep only last N metrics
     if (this.metrics.length > this.maxMetricsHistory) {
       this.metrics = this.metrics.slice(-this.maxMetricsHistory);
     }
-    
+
     // Log metrics for external aggregation
     logger.logMetrics({
       cpu: metrics.cpu,
@@ -483,12 +482,12 @@ export class HealthMonitoringService extends EventEmitter {
   private checkAlertThresholds(metrics: SystemMetrics): void {
     for (const alert of this.alertConfigs) {
       if (!alert.enabled) continue;
-      
+
       const value = this.getMetricValue(metrics, alert.metric);
       if (value === undefined) continue;
-      
+
       let triggered = false;
-      
+
       switch (alert.comparison) {
         case 'gt':
           triggered = value > alert.threshold;
@@ -500,7 +499,7 @@ export class HealthMonitoringService extends EventEmitter {
           triggered = value === alert.threshold;
           break;
       }
-      
+
       if (triggered) {
         this.emit('metric-threshold-exceeded', alert, value);
       }
@@ -513,7 +512,7 @@ export class HealthMonitoringService extends EventEmitter {
   private getMetricValue(metrics: SystemMetrics, path: string): number | undefined {
     const keys = path.split('.');
     let value: any = metrics;
-    
+
     for (const key of keys) {
       if (value && typeof value === 'object' && key in value) {
         value = value[key];
@@ -521,7 +520,7 @@ export class HealthMonitoringService extends EventEmitter {
         return undefined;
       }
     }
-    
+
     return typeof value === 'number' ? value : undefined;
   }
 
@@ -557,11 +556,11 @@ export class HealthMonitoringService extends EventEmitter {
    */
   getHealthStatus(): Record<string, HealthCheckResult> {
     const status: Record<string, HealthCheckResult> = {};
-    
+
     for (const [component, result] of this.healthChecks) {
       status[component] = result;
     }
-    
+
     return status;
   }
 
@@ -577,13 +576,13 @@ export class HealthMonitoringService extends EventEmitter {
    */
   async updateAlertConfigs(alerts: AlertConfig[]): Promise<void> {
     this.alertConfigs = alerts;
-    
+
     await this.systemConfig.setConfig(
       'health.alerts',
       JSON.stringify(alerts),
       'Health monitoring alert configurations'
     );
-    
+
     logger.info('Alert configurations updated', { metadata: { alertCount: alerts.length } }, 'HealthMonitor');
   }
-} 
+}

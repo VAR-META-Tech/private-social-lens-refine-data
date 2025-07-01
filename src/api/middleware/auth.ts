@@ -5,8 +5,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { logger } from '../../services/logging.service.js';
-import { createApiError } from './error-handler.js';
+import { logger } from '@/services';
+import { createApiError } from '@/api';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -48,14 +48,14 @@ export function authMiddleware(
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       const decoded = verifyJwtToken(token);
-      
+
       req.user = {
         id: decoded.sub || decoded.userId,
         email: decoded.email,
         role: decoded.role || 'user',
         permissions: decoded.permissions || ['read']
       };
-      
+
       next();
       return;
     }
@@ -178,4 +178,4 @@ function verifyJwtToken(token: string): any {
 export function generateJwtToken(payload: any, expiresIn: string = '24h'): string {
   const secret = process.env.JWT_SECRET || 'default-secret-change-in-production';
   return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
-} 
+}

@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../../services/logging.service.js';
+import { logger } from '@/services';
 
 export interface ApiError extends Error {
   statusCode?: number;
@@ -85,4 +85,4 @@ export function asyncHandler(
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
-} 
+}

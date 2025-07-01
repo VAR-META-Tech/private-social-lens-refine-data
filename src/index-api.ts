@@ -4,14 +4,14 @@
  */
 
 import 'dotenv/config';
-import ApiServer from './api/server.js';
-import { logger } from './services/logging.service.js';
+import { logger } from '@/services';
+import {ApiServer} from "@/api";
 
 async function startApiServer() {
   try {
     const port = parseInt(process.env.API_PORT || '3000', 10);
     const apiServer = new ApiServer(port);
-    
+
     // Handle graceful shutdown
     process.on('SIGTERM', async () => {
       logger.info('SIGTERM received, shutting down API server gracefully...', {}, 'ApiServer');
@@ -43,7 +43,7 @@ async function startApiServer() {
 
     // Start the server
     await apiServer.start();
-    
+
   } catch (error) {
     logger.error('Failed to start API server', error as Error, {}, 'ApiServer');
     process.exit(1);
@@ -55,4 +55,4 @@ if (process.argv[1] && process.argv[1].endsWith('index-api.js')) {
   startApiServer();
 }
 
-export { startApiServer }; 
+export { startApiServer };

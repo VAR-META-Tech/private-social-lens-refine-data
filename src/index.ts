@@ -3,8 +3,8 @@
  * Refactored to use service-based architecture with dependency injection
  */
 
-import { CliApplication } from './application/cli-application';
-import { validateConfig } from './config';
+import {CliApplication} from '@/application';
+import {validateConfig} from "@/config";
 
 /**
  * Main function
@@ -67,4 +67,4 @@ if (require.main === module) {
   });
 }
 
-export { main }; 
+export {main};

@@ -5,13 +5,13 @@
  */
 
 import * as cron from 'node-cron';
-import { prisma } from '../database/client';
-import { 
-  JobStatus, 
-  JobType, 
+import { prisma } from '@/database/client';
+import {
+  JobStatus,
+  JobType,
   RefinementJob,
-  Prisma 
-} from '../generated/prisma';
+  Prisma
+} from '@/generated/prisma';
 
 export interface ScheduledJobConfig {
   jobName: string;
@@ -57,13 +57,13 @@ export class JobSchedulerService {
     try {
       // Load existing scheduled jobs from database
       await this.loadScheduledJobs();
-      
+
       // Start job queue processor
       this.startJobQueueProcessor();
-      
+
       // Schedule system maintenance jobs
       await this.scheduleSystemJobs();
-      
+
       console.log('✅ Job Scheduler Service initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize Job Scheduler Service:', error);
@@ -130,7 +130,7 @@ export class JobSchedulerService {
       });
 
       this.scheduledJobs.set(job.id, task);
-      
+
       console.log(`⏰ Scheduled job ${job.jobName} with cron: ${job.cronSchedule}`);
     } catch (error) {
       console.error(`❌ Failed to schedule job ${job.id}:`, error);
@@ -209,7 +209,7 @@ export class JobSchedulerService {
     } finally {
       // Remove from running jobs
       this.runningJobs.delete(jobId);
-      
+
       // Process next job in queue
       this.processJobQueue();
     }
@@ -226,23 +226,23 @@ export class JobSchedulerService {
         case JobType.SCHEDULED_BATCH:
           await this.executeScheduledBatchJob(context);
           break;
-        
+
         case JobType.RANGE_BASED:
           await this.executeRangeBasedJob(context);
           break;
-        
+
         case JobType.CLEANUP:
           await this.executeCleanupJob(context);
           break;
-        
+
         case JobType.HEALTH_CHECK:
           await this.executeHealthCheckJob(context);
           break;
-        
+
         case JobType.MANUAL:
           await this.executeManualJob(context);
           break;
-        
+
         default:
           throw new Error(`Unknown job type: ${job.jobType}`);
       }
@@ -261,7 +261,7 @@ export class JobSchedulerService {
    */
   private async executeScheduledBatchJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
-    
+
     console.log(`📦 Executing scheduled batch job: ${job.jobName}`);
 
     // Get configuration for what files to process
@@ -290,7 +290,7 @@ export class JobSchedulerService {
    */
   private async executeRangeBasedJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
-    
+
     console.log(`🎯 Executing range-based job: ${job.jobName}`);
 
     if (!job.startFileId || !job.endFileId) {
@@ -316,7 +316,7 @@ export class JobSchedulerService {
    */
   private async executeCleanupJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
-    
+
     console.log(`🗑️ Executing cleanup job: ${job.jobName}`);
 
     const config = job.metadata as any || {};
@@ -358,7 +358,7 @@ export class JobSchedulerService {
    */
   private async executeHealthCheckJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
-    
+
     console.log(`🏥 Executing health check job: ${job.jobName}`);
 
     const healthReport = {
@@ -393,7 +393,7 @@ export class JobSchedulerService {
       // Check job queue health
       const runningJobs = this.runningJobs.size;
       const scheduledJobs = this.scheduledJobs.size;
-      
+
       healthReport.jobs = {
         status: 'healthy',
         running: runningJobs,
@@ -428,12 +428,12 @@ export class JobSchedulerService {
    */
   private async executeManualJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
-    
+
     console.log(`👤 Executing manual job: ${job.jobName}`);
 
     // Manual jobs can be any type, use metadata to determine execution
     const config = job.metadata as any || {};
-    
+
     if (config.executionType === 'range') {
       await this.executeRangeBasedJob(context);
     } else if (config.executionType === 'cleanup') {
@@ -582,10 +582,10 @@ export class JobSchedulerService {
       jobType: JobType.CLEANUP,
       cronSchedule: '0 2 * * 0',
       priority: 2,
-      metadata: { 
-        type: 'system', 
+      metadata: {
+        type: 'system',
         automated: true,
-        retentionDays: 30 
+        retentionDays: 30
       }
     });
 
@@ -670,7 +670,7 @@ export class JobSchedulerService {
     if (task) {
       task.stop();
       this.scheduledJobs.delete(jobId);
-      
+
       await prisma.refinementJob.update({
         where: { id: jobId },
         data: { status: JobStatus.CANCELLED }
@@ -725,11 +725,11 @@ export class JobSchedulerService {
     pagination: { limit: number; offset: number }
   ): Promise<RefinementJob[]> {
     const where: Prisma.RefinementJobWhereInput = {};
-    
+
     if (filters.status) {
       where.status = filters.status as JobStatus;
     }
-    
+
     if (filters.jobType) {
       where.jobType = filters.jobType as JobType;
     }
@@ -747,11 +747,11 @@ export class JobSchedulerService {
    */
   async getJobCount(filters: { status?: string; jobType?: string }): Promise<number> {
     const where: Prisma.RefinementJobWhereInput = {};
-    
+
     if (filters.status) {
       where.status = filters.status as JobStatus;
     }
-    
+
     if (filters.jobType) {
       where.jobType = filters.jobType as JobType;
     }
@@ -809,7 +809,7 @@ export class JobSchedulerService {
       this.runningJobs.delete(jobId);
       await prisma.refinementJob.update({
         where: { id: jobId },
-        data: { 
+        data: {
           status: JobStatus.CANCELLED,
           completedAt: new Date()
         }
@@ -823,7 +823,7 @@ export class JobSchedulerService {
   async retryJob(jobId: string): Promise<void> {
     await prisma.refinementJob.update({
       where: { id: jobId },
-      data: { 
+      data: {
         status: JobStatus.PENDING,
         retryCount: { increment: 1 }
       }
@@ -847,7 +847,7 @@ export class JobSchedulerService {
     pagination: { limit: number; offset: number }
   ): Promise<any[]> {
     const where: any = { jobId: filters.jobId };
-    
+
     if (filters.status) {
       where.status = filters.status;
     }
@@ -865,7 +865,7 @@ export class JobSchedulerService {
    */
   async getJobLogCount(filters: { jobId: string; status?: string }): Promise<number> {
     const where: any = { jobId: filters.jobId };
-    
+
     if (filters.status) {
       where.status = filters.status;
     }
@@ -888,25 +888,25 @@ export class JobSchedulerService {
         where: { createdAt: { gte: since } }
       }),
       prisma.refinementJob.count({
-        where: { 
+        where: {
           createdAt: { gte: since },
           status: JobStatus.RUNNING
         }
       }),
       prisma.refinementJob.count({
-        where: { 
+        where: {
           createdAt: { gte: since },
           status: JobStatus.COMPLETED
         }
       }),
       prisma.refinementJob.count({
-        where: { 
+        where: {
           createdAt: { gte: since },
           status: JobStatus.FAILED
         }
       }),
       prisma.refinementJob.count({
-        where: { 
+        where: {
           createdAt: { gte: since },
           status: JobStatus.PENDING
         }
@@ -921,4 +921,4 @@ export class JobSchedulerService {
       pending
     };
   }
-} 
+}

@@ -3,11 +3,11 @@
  * Handles CLI interface while delegating business logic to services
  */
 
-import { container } from '../core/container';
-import { BatchProcessor } from '../core/batch-processor';
-import { connectDatabase } from '../database/client';
-import { initializeContract } from '../services/blockchain.service';
-import { getEnvironmentConfig, displayEnvironmentSummary } from '../config/environment';
+import { container } from '@/core';
+import { BatchProcessor } from '@/core';
+import { connectDatabase } from '@/database/client';
+import { initializeContract } from '@/services';
+import { getEnvironmentConfig, displayEnvironmentSummary } from '@/config';
 
 export interface CliArguments {
   startId?: number;
@@ -48,7 +48,7 @@ export class CliApplication {
       // Validate complete configuration
       const hybridConfigService = container.getHybridConfigService();
       const configValidation = await hybridConfigService.validateConfig();
-      
+
       if (!configValidation.valid) {
         console.warn('⚠️ Configuration validation warnings:');
         configValidation.errors.forEach(error => console.warn(`  • ${error}`));
@@ -112,9 +112,9 @@ export class CliApplication {
     console.log(`⏭️ Already refined: ${result.alreadyRefinedFiles}`);
     console.log(`⏹️ Skipped: ${result.skippedFiles}`);
     console.log(`⏱️ Processing time: ${result.processingTimeMs}ms`);
-    
-    const successRate = result.processedFiles > 0 
-      ? Math.round((result.successfulFiles / result.processedFiles) * 100 * 100) / 100 
+
+    const successRate = result.processedFiles > 0
+      ? Math.round((result.successfulFiles / result.processedFiles) * 100 * 100) / 100
       : 0;
     console.log(`📊 Success rate: ${successRate}%`);
     console.log('==========================================\n');
@@ -282,4 +282,4 @@ For more information, see the documentation.
       throw error;
     }
   }
-} 
+}

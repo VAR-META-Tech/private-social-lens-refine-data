@@ -3,8 +3,8 @@
  * Handles dynamic system configuration management
  */
 
-import { prisma } from '../database/client';
-import { SystemConfig, ConfigDataType } from '../generated/prisma';
+import { prisma } from '@/database/client';
+import { SystemConfig, ConfigDataType } from '@/generated/prisma';
 
 export interface ConfigValue {
   key: string;
@@ -325,4 +325,4 @@ export class SystemConfigService {
       errors
     };
   }
-} 
+}

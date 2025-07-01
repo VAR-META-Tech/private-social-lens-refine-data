@@ -10,19 +10,10 @@ import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import rateLimit from 'express-rate-limit';
-import { container } from '../core/container.js';
-import { logger } from '../services/logging.service.js';
-
-// Import route handlers
-import jobRoutes from './routes/jobs.js';
-import configRoutes from './routes/config.js';
-import statsRoutes from './routes/stats.js';
-import healthRoutes from './routes/health.js';
-
-// Import middleware
-import { errorHandler } from './middleware/error-handler.js';
-import { requestLogger } from './middleware/request-logger.js';
-import { authMiddleware } from './middleware/auth.js';
+import { container } from '@/core';
+import { logger } from '@/services';
+import {authMiddleware, errorHandler, requestLogger} from "@/api/middleware";
+import {configRoutes, healthRoutes, jobRoutes, statsRoutes} from "@/api/routes";
 
 export class ApiServer {
   private app: express.Application;
@@ -221,7 +212,7 @@ export class ApiServer {
     try {
       // Initialize container and services
       await container.initialize();
-      
+
       logger.info('API server dependencies initialized', {}, 'ApiServer');
 
       // Start HTTP server
@@ -298,4 +289,4 @@ export class ApiServer {
   }
 }
 
-export default ApiServer; 
+export default ApiServer;

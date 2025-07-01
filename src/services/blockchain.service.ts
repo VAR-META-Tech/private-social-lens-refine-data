@@ -2,7 +2,7 @@
  * Blockchain interaction service for smart contracts
  */
 import { ethers } from 'ethers';
-import { getEnvironmentConfig } from '../config/environment';
+import { getEnvironmentConfig } from '@/config';
 
 // Import eccrypto as any to avoid type issues
 const eccrypto = require('eccrypto');
@@ -16,7 +16,7 @@ let isInitialized = false;
  */
 export function initializeContract(): void {
   const config = getEnvironmentConfig();
-  
+
   if (!config.dataRegistryAddress) {
     throw new Error("DATA_REGISTRY_ADDRESS environment variable must be set");
   }
@@ -46,7 +46,7 @@ function ensureInitialized(): void {
  */
 export async function getFileAtIndex(index: number | ethers.BigNumber): Promise<ethers.BigNumber | null> {
   ensureInitialized();
-  
+
   try {
     const config = getEnvironmentConfig();
     const iface = new ethers.utils.Interface([
@@ -57,7 +57,7 @@ export async function getFileAtIndex(index: number | ethers.BigNumber): Promise<
       to: config.dlpAddress,
       data,
     });
-    
+
     if (result && result !== "0x") {
       const [fileId] = iface.decodeFunctionResult("filesListAt", result);
       return fileId as ethers.BigNumber;
@@ -108,7 +108,7 @@ export async function decryptEEK(encryptedEEK: string, fileId?: number): Promise
  */
 export async function getFilePermissions(fileId: number): Promise<string | null> {
   ensureInitialized();
-  
+
   try {
     const config = getEnvironmentConfig();
     console.log(
@@ -156,12 +156,12 @@ export async function getFilePermissions(fileId: number): Promise<string | null>
     console.error(
       `Error checking permissions for file ${fileId} from contract: ${error?.message || error}`
     );
-    
+
     // Print more error details if available
     if (error?.code) console.error(`Error code: ${error.code}`);
     if (error?.reason) console.error(`Error reason: ${error.reason}`);
     if (error?.data) console.error(`Error data: ${error.data}`);
-    
+
     return null;
   }
 }
@@ -171,7 +171,7 @@ export async function getFilePermissions(fileId: number): Promise<string | null>
  */
 export async function checkFileRefinement(fileId: number, refinerId?: number): Promise<boolean> {
   ensureInitialized();
-  
+
   try {
     const config = getEnvironmentConfig();
     const actualRefinerId = refinerId || config.defaultRefinerId;
@@ -221,7 +221,7 @@ export async function checkFileRefinement(fileId: number, refinerId?: number): P
     console.error(
       `Error checking refinement for file ${fileId}: ${error?.message || error}`
     );
-    
+
     return false;
   }
 }
@@ -239,4 +239,4 @@ export function getProvider(): ethers.providers.JsonRpcProvider {
  */
 export function isContractInitialized(): boolean {
   return isInitialized && !!provider;
-} 
+}

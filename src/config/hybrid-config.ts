@@ -5,13 +5,13 @@
  * Database stores runtime/business configuration that can be modified
  */
 
-import { SystemConfigService } from '../services/system-config.service';
+import { SystemConfigService } from '@/services';
 import { getEnvironmentConfig, EnvironmentConfig } from './environment';
 
 export interface HybridConfig {
   // Environment-based (immutable during runtime)
   environment: EnvironmentConfig;
-  
+
   // Database-based (can be modified during runtime)
   processing: {
     batchSize: number;
@@ -22,22 +22,22 @@ export interface HybridConfig {
     autoRetry: boolean;
     parallelProcessing: boolean;
   };
-  
+
   cron: {
     batchProcessing: string;
     cleanupOldLogs: string;
     healthCheck: string;
   };
-  
+
   api: {
     refinementTimeoutMs: number;
   };
-  
+
   features: {
     autoRetry: boolean;
     parallelProcessing: boolean;
   };
-  
+
   logging: {
     level: string;
     maxFileSizeMb: number;
@@ -59,7 +59,7 @@ export class HybridConfigService {
    */
   async getConfig(forceRefresh: boolean = false): Promise<HybridConfig> {
     const now = Date.now();
-    
+
     // Return cached config if still valid
     if (!forceRefresh && this.cachedConfig && (now - this.lastCacheTime) < this.cacheTimeout) {
       return this.cachedConfig;
@@ -150,7 +150,7 @@ export class HybridConfigService {
 
       // Validate environment config
       const config = await this.getConfig();
-      
+
       // Cross-validation: ensure database config is within reasonable bounds
       if (config.processing.batchSize > 1000) {
         errors.push('Batch size too large (max 1000)');
@@ -248,7 +248,7 @@ export class HybridConfigService {
 
     // Override database config with environment variables if they exist
     const env = getEnvironmentConfig();
-    
+
     // Override batch size if set in environment
     if (process.env.BATCH_SIZE) {
       await this.systemConfigService.setConfig(
@@ -267,4 +267,4 @@ export class HybridConfigService {
 
     console.log('✅ Hybrid configuration initialized');
   }
-} 
+}

@@ -3,8 +3,8 @@
  * Handles batch processing statistics collection and aggregation
  */
 
-import { prisma } from '../database/client';
-import { BatchStatistic, ProcessingStatus } from '../generated/prisma';
+import { prisma } from '@/database/client';
+import { BatchStatistic, ProcessingStatus } from '@/generated/prisma';
 
 export interface BatchStatsParams {
   jobId: string;
@@ -130,8 +130,8 @@ export class BatchStatisticsService {
     );
 
     // Calculate average processing time
-    const averageProcessingTimeMs = stats.processedCount > 0 
-      ? Number(stats.totalProcessingTimeMs) / stats.processedCount 
+    const averageProcessingTimeMs = stats.processedCount > 0
+      ? Number(stats.totalProcessingTimeMs) / stats.processedCount
       : 0;
 
     // Update batch statistics
@@ -231,8 +231,8 @@ export class BatchStatisticsService {
    * Get processing performance metrics
    */
   async getPerformanceMetrics(
-    jobIdOrStartDate?: string | Date, 
-    endDate?: Date, 
+    jobIdOrStartDate?: string | Date,
+    endDate?: Date,
     granularity?: string
   ): Promise<any> {
     // Legacy single parameter call (jobId)
@@ -671,7 +671,7 @@ export class BatchStatisticsService {
    */
   private convertToCSV(data: any[], headers: string[]): string {
     const csvHeaders = headers.join(',');
-    const csvRows = data.map(row => 
+    const csvRows = data.map(row =>
       headers.map(header => {
         let value = row[header];
         if (value === null || value === undefined) {
@@ -687,4 +687,4 @@ export class BatchStatisticsService {
 
     return [csvHeaders, ...csvRows].join('\n');
   }
-} 
+}

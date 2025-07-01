@@ -5,9 +5,9 @@
 
 import { Router, Request, Response } from 'express';
 import Joi from 'joi';
-import { container } from '../../core/container.js';
-import { asyncHandler, createApiError } from '../middleware/error-handler.js';
-import { AuthenticatedRequest, requirePermission } from '../middleware/auth.js';
+import { container } from '@/core';
+import { asyncHandler, createApiError } from '@/api';
+import { AuthenticatedRequest, requirePermission } from '@/api';
 
 const router = Router();
 
@@ -67,17 +67,17 @@ const timeRangeSchema = Joi.object({
 router.get('/overview', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
   const jobScheduler = container.getJobSchedulerService();
-  
+
   const timeframe = req.query.timeframe as string || '24h';
   const timeframeDuration = parseTimeframe(timeframe);
   const since = new Date(Date.now() - timeframeDuration);
 
   // Get job statistics
   const jobStats = await jobScheduler.getJobStatistics(since);
-  
+
   // Get processing statistics
   const processingStats = await batchStats.getProcessingStatistics(since);
-  
+
   // Get performance metrics
   const performanceStats = await batchStats.getPerformanceStatistics(since);
 
@@ -150,7 +150,7 @@ router.get('/jobs', requirePermission('read'), asyncHandler(async (req: Authenti
   }
 
   const batchStats = container.getBatchStatisticsService();
-  
+
   const startDate = value.startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Default: 7 days ago
   const endDate = value.endDate || new Date();
   const period = value.period;
@@ -202,7 +202,7 @@ router.get('/jobs', requirePermission('read'), asyncHandler(async (req: Authenti
  */
 router.get('/performance', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
-  
+
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
   const granularity = req.query.granularity as string || 'daily';
@@ -254,7 +254,7 @@ router.get('/performance', requirePermission('read'), asyncHandler(async (req: A
  */
 router.get('/processing', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
-  
+
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 24 * 60 * 60 * 1000);
   const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
   const groupBy = req.query.groupBy as string || 'status';
@@ -307,7 +307,7 @@ router.get('/processing', requirePermission('read'), asyncHandler(async (req: Au
  */
 router.get('/errors', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
-  
+
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
   const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
@@ -354,10 +354,10 @@ router.get('/errors', requirePermission('read'), asyncHandler(async (req: Authen
  */
 router.get('/trends', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
-  
+
   const metric = req.query.metric as string || 'throughput';
   const period = req.query.period as string || '30d';
-  
+
   const periodMs = parsePeriod(period);
   const startDate = new Date(Date.now() - periodMs);
   const endDate = new Date();
@@ -414,7 +414,7 @@ router.get('/trends', requirePermission('read'), asyncHandler(async (req: Authen
  */
 router.get('/export', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
-  
+
   const type = req.query.type as string || 'jobs';
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
@@ -423,7 +423,7 @@ router.get('/export', requirePermission('read'), asyncHandler(async (req: Authen
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="batch-refinement-${type}-${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}.csv"`);
-  
+
   res.send(csvData);
 }));
 
@@ -454,4 +454,4 @@ function parsePeriod(period: string): number {
   return periods[period] || periods['30d'];
 }
 
-export default router; 
+export default router;

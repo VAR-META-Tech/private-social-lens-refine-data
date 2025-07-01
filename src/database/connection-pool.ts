@@ -3,7 +3,7 @@
  * Manages database connections with pooling, monitoring, and health checks
  */
 
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@/generated/prisma';
 
 interface ConnectionPoolConfig {
   maxConnections: number;
@@ -142,7 +142,7 @@ class PrismaConnectionPool {
     try {
       // Simple health check query
       await this.prisma.$queryRaw`SELECT 1 as health_check`;
-      
+
       // Update stats (these would be more accurate with actual pool metrics)
       this.stats = {
         totalConnections: this.config.maxConnections,
@@ -257,13 +257,13 @@ class PrismaConnectionPool {
         return await operation(this.prisma);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        
+
         if (attempt === maxRetries) {
           break;
         }
 
         console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}):`, lastError.message);
-        
+
         // Exponential backoff
         await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempt - 1)));
       }
@@ -293,4 +293,4 @@ export const connectionPool = new PrismaConnectionPool();
 export { PrismaConnectionPool };
 
 // Export types
-export type { ConnectionPoolConfig, PoolStats }; 
+export type { ConnectionPoolConfig, PoolStats };

@@ -3,14 +3,12 @@
  * Handles business logic for refinement jobs
  */
 
-import { prisma } from '../database/client';
-import { 
-  RefinementJob, 
-  JobStatus, 
-  JobType, 
-  ProcessingStatus,
-  Prisma 
-} from '../generated/prisma';
+import { prisma } from '@/database/client';
+import {
+  RefinementJob,
+  JobStatus,
+  JobType,
+} from '@/generated/prisma';
 
 export interface CreateJobParams {
   jobName: string;
@@ -80,7 +78,7 @@ export class RefinementJobService {
    */
   async completeJob(jobId: string, success: boolean = true): Promise<RefinementJob> {
     const status = success ? JobStatus.COMPLETED : JobStatus.FAILED;
-    
+
     const job = await prisma.refinementJob.update({
       where: { id: jobId },
       data: {
@@ -171,4 +169,4 @@ export class RefinementJobService {
       }
     });
   }
-} 
+}

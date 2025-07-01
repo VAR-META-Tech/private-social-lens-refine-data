@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../../services/logging.service.js';
+import { logger } from '@/services';
 
 /**
  * Request logging middleware
@@ -33,7 +33,7 @@ export function requestLogger(
   // Log response when request finishes
   res.on('finish', () => {
     const duration = Date.now() - startTime;
-    
+
     logger.info('HTTP Response', {
       operation: 'http-response',
       duration,
@@ -48,4 +48,4 @@ export function requestLogger(
   });
 
   next();
-} 
+}

@@ -5,7 +5,7 @@
  * Usage: npm run service or node dist/index-service.js
  */
 
-import { ServiceApplication } from './application/service-application';
+import { ServiceApplication } from '@/application';
 
 /**
  * Main service function
@@ -63,7 +63,7 @@ async function main() {
         const jobType = args[1];
         const startFileId = parseInt(args[2]);
         const endFileId = parseInt(args[3]);
-        
+
         if (!jobType || !startFileId || !endFileId) {
           console.error('❌ Usage: npm run service schedule <RANGE_BASED|CLEANUP|HEALTH_CHECK> <startFileId> <endFileId>');
           process.exit(1);
@@ -71,7 +71,7 @@ async function main() {
 
         console.log(`🎯 Scheduling one-time ${jobType} job...`);
         await service.start();
-        
+
         const jobId = await service.scheduleOneTimeJob({
           jobName: `manual-${jobType.toLowerCase()}-${Date.now()}`,
           jobType: jobType as any,
@@ -142,4 +142,4 @@ Use Ctrl+C to stop the service gracefully.
 main().catch((error) => {
   console.error('❌ Fatal error:', error);
   process.exit(1);
-}); 
+});
