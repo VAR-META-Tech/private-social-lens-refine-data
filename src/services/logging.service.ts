@@ -39,7 +39,7 @@ export interface LogMetrics {
 }
 
 export class LoggingService {
-  private logger: winston.Logger;
+  private logger!: winston.Logger;
   private serviceName: string = 'batch-refinement';
   private logDirectory: string = 'logs';
 
@@ -86,8 +86,8 @@ export class LoggingService {
 
         // Remove undefined fields for cleaner JSON
         Object.keys(logEntry).forEach(key => {
-          if (logEntry[key] === undefined) {
-            delete logEntry[key];
+          if ((logEntry as any)[key] === undefined) {
+            delete (logEntry as any)[key];
           }
         });
 

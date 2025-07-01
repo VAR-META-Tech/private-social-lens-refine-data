@@ -27,7 +27,7 @@ const createJobSchema = Joi.object({
   }),
   endFileId: Joi.number().integer().min(1).when('jobType', {
     is: 'RANGE_BASED',
-    then: Joi.required().min(Joi.ref('startFileId')),
+    then: Joi.number().required().min(Joi.ref('startFileId')),
     otherwise: Joi.optional()
   }),
   batchSize: Joi.number().integer().min(1).max(1000).default(10),
@@ -164,7 +164,7 @@ router.get('/:jobId', requirePermission('read'), asyncHandler(async (req: Authen
   // Get job statistics if available
   let statistics = null;
   try {
-    statistics = await batchStats.getBatchStatistics(req.params.jobId);
+    statistics = await batchStats.getBatchStats(req.params.jobId);
   } catch (error) {
     // Statistics may not exist for all jobs
   }

@@ -714,7 +714,211 @@ export class JobSchedulerService {
    * Manually trigger a job
    */
   async triggerJob(jobId: string): Promise<void> {
-    console.log(`👤 Manually triggering job: ${jobId}`);
     await this.executeJob(jobId);
+  }
+
+  /**
+   * List jobs with filtering and pagination
+   */
+  async listJobs(
+    filters: { status?: string; jobType?: string },
+    pagination: { limit: number; offset: number }
+  ): Promise<RefinementJob[]> {
+    const where: Prisma.RefinementJobWhereInput = {};
+    
+    if (filters.status) {
+      where.status = filters.status as JobStatus;
+    }
+    
+    if (filters.jobType) {
+      where.jobType = filters.jobType as JobType;
+    }
+
+    return await prisma.refinementJob.findMany({
+      where,
+      skip: pagination.offset,
+      take: pagination.limit,
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  /**
+   * Get job count with filters
+   */
+  async getJobCount(filters: { status?: string; jobType?: string }): Promise<number> {
+    const where: Prisma.RefinementJobWhereInput = {};
+    
+    if (filters.status) {
+      where.status = filters.status as JobStatus;
+    }
+    
+    if (filters.jobType) {
+      where.jobType = filters.jobType as JobType;
+    }
+
+    return await prisma.refinementJob.count({ where });
+  }
+
+  /**
+   * Get job by ID
+   */
+  async getJobById(jobId: string): Promise<RefinementJob | null> {
+    return await prisma.refinementJob.findUnique({
+      where: { id: jobId }
+    });
+  }
+
+  /**
+   * Create a new job
+   */
+  async createJob(jobData: any): Promise<RefinementJob> {
+    return await prisma.refinementJob.create({
+      data: {
+        ...jobData,
+        status: JobStatus.PENDING,
+        maxRetries: jobData.maxRetries || 3,
+        retryDelaySeconds: jobData.retryDelaySeconds || 300,
+        metadata: jobData.metadata || {}
+      }
+    });
+  }
+
+  /**
+   * Update a job
+   */
+  async updateJob(jobId: string, updates: any): Promise<RefinementJob> {
+    return await prisma.refinementJob.update({
+      where: { id: jobId },
+      data: updates
+    });
+  }
+
+  /**
+   * Start a job
+   */
+  async startJob(jobId: string): Promise<void> {
+    await this.executeJob(jobId);
+  }
+
+  /**
+   * Stop a job
+   */
+  async stopJob(jobId: string): Promise<void> {
+    const context = this.runningJobs.get(jobId);
+    if (context) {
+      this.runningJobs.delete(jobId);
+      await prisma.refinementJob.update({
+        where: { id: jobId },
+        data: { 
+          status: JobStatus.CANCELLED,
+          completedAt: new Date()
+        }
+      });
+    }
+  }
+
+  /**
+   * Retry a failed job
+   */
+  async retryJob(jobId: string): Promise<void> {
+    await prisma.refinementJob.update({
+      where: { id: jobId },
+      data: { 
+        status: JobStatus.PENDING,
+        retryCount: { increment: 1 }
+      }
+    });
+  }
+
+  /**
+   * Delete a job
+   */
+  async deleteJob(jobId: string): Promise<void> {
+    await prisma.refinementJob.delete({
+      where: { id: jobId }
+    });
+  }
+
+  /**
+   * Get job logs
+   */
+  async getJobLogs(
+    filters: { jobId: string; status?: string },
+    pagination: { limit: number; offset: number }
+  ): Promise<any[]> {
+    const where: any = { jobId: filters.jobId };
+    
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    return await prisma.fileProcessingLog.findMany({
+      where,
+      skip: pagination.offset,
+      take: pagination.limit,
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  /**
+   * Get job log count
+   */
+  async getJobLogCount(filters: { jobId: string; status?: string }): Promise<number> {
+    const where: any = { jobId: filters.jobId };
+    
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    return await prisma.fileProcessingLog.count({ where });
+  }
+
+  /**
+   * Get job statistics since a date
+   */
+  async getJobStatistics(since: Date): Promise<{
+    total: number;
+    running: number;
+    completed: number;
+    failed: number;
+    pending: number;
+  }> {
+    const [total, running, completed, failed, pending] = await Promise.all([
+      prisma.refinementJob.count({
+        where: { createdAt: { gte: since } }
+      }),
+      prisma.refinementJob.count({
+        where: { 
+          createdAt: { gte: since },
+          status: JobStatus.RUNNING
+        }
+      }),
+      prisma.refinementJob.count({
+        where: { 
+          createdAt: { gte: since },
+          status: JobStatus.COMPLETED
+        }
+      }),
+      prisma.refinementJob.count({
+        where: { 
+          createdAt: { gte: since },
+          status: JobStatus.FAILED
+        }
+      }),
+      prisma.refinementJob.count({
+        where: { 
+          createdAt: { gte: since },
+          status: JobStatus.PENDING
+        }
+      })
+    ]);
+
+    return {
+      total,
+      running,
+      completed,
+      failed,
+      pending
+    };
   }
 } 

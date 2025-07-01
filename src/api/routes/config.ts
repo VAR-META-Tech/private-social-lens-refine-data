@@ -272,7 +272,7 @@ router.put('/:key', requireRole(['admin']), asyncHandler(async (req: Authenticat
   const systemConfig = container.getSystemConfigService();
 
   // Check if key exists
-  const existing = await systemConfig.get(req.params.key);
+  const existing = await systemConfig.getConfig(req.params.key);
   if (existing === null) {
     throw createApiError('Configuration key not found', 404, 'CONFIG_NOT_FOUND');
   }
@@ -282,7 +282,7 @@ router.put('/:key', requireRole(['admin']), asyncHandler(async (req: Authenticat
     updatedBy: req.user?.id || 'api-user'
   };
 
-  await systemConfig.set(req.params.key, value.value, configData);
+  await systemConfig.setConfig(req.params.key, value.value, configData);
 
   res.json({
     message: 'Configuration updated successfully',
@@ -318,12 +318,12 @@ router.delete('/:key', requireRole(['admin']), asyncHandler(async (req: Authenti
   const systemConfig = container.getSystemConfigService();
 
   // Check if key exists
-  const existing = await systemConfig.get(req.params.key);
+  const existing = await systemConfig.getConfig(req.params.key);
   if (existing === null) {
     throw createApiError('Configuration key not found', 404, 'CONFIG_NOT_FOUND');
   }
 
-  await systemConfig.delete(req.params.key);
+  await systemConfig.deleteConfig(req.params.key);
 
   res.json({
     message: 'Configuration deleted successfully',
@@ -385,30 +385,30 @@ router.get('/categories', requirePermission('read'), asyncHandler(async (req: Au
   });
 }));
 
-/**
- * @swagger
- * /api/config/reload:
- *   post:
- *     tags: [Configuration]
- *     summary: Reload configuration
- *     description: Reload configuration from database (admin only)
- *     security:
- *       - bearerAuth: []
- *       - apiKey: []
- *     responses:
- *       200:
- *         description: Configuration reloaded successfully
- */
-router.post('/reload', requireRole(['admin']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const systemConfig = container.getSystemConfigService();
+// /**
+//  * @swagger
+//  * /api/config/reload:
+//  *   post:
+//  *     tags: [Configuration]
+//  *     summary: Reload configuration
+//  *     description: Reload configuration from database (admin only)
+//  *     security:
+//  *       - bearerAuth: []
+//  *       - apiKey: []
+//  *     responses:
+//  *       200:
+//  *         description: Configuration reloaded successfully
+//  */
+// router.post('/reload', requireRole(['admin']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+//   const systemConfig = container.getSystemConfigService();
   
-  await systemConfig.reloadConfig();
+//   await systemConfig.reloadConfig();
 
-  res.json({
-    message: 'Configuration reloaded successfully',
-    timestamp: new Date().toISOString()
-  });
-}));
+//   res.json({
+//     message: 'Configuration reloaded successfully',
+//     timestamp: new Date().toISOString()
+//   });
+// }));
 
 /**
  * Get description for configuration categories

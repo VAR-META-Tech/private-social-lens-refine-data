@@ -177,5 +177,5 @@ function verifyJwtToken(token: string): any {
  */
 export function generateJwtToken(payload: any, expiresIn: string = '24h'): string {
   const secret = process.env.JWT_SECRET || 'default-secret-change-in-production';
-  return jwt.sign(payload, secret, { expiresIn: expiresIn });
+  return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
 } 
