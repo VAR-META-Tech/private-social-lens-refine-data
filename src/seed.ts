@@ -3,7 +3,7 @@
  * Populates the database with sample data for development and testing
  */
 
-import { PrismaClient, JobStatus, JobType, ProcessingStatus, QueueStatus, ConfigDataType } from '../src/generated/prisma';
+import { PrismaClient, JobStatus, JobType, ProcessingStatus, QueueStatus, ConfigDataType } from './generated/prisma';
 
 const prisma = new PrismaClient();
 

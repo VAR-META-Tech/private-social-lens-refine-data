@@ -21,7 +21,7 @@
     "db:status": "prisma migrate status"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx src/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",

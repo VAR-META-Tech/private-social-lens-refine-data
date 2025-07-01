@@ -2,5 +2,20 @@
 node_modules
 output
 /.idea
+/src/generated
 /src/generated/prisma
 /logs
+/dist
+
+# Build files
+*.js
+*.d.ts
+*.js.map
+*.d.ts.map
+
+# Keep important JS files
+!node_modules/**
+!src/generated/**
+!jest.config.js
+!tailwind.config.js
+!postcss.config.js
