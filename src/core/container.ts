@@ -7,14 +7,18 @@ import { RefinementJobService } from '../services/refinement-job.service';
 import { FileProcessingService } from '../services/file-processing.service';
 import { BatchStatisticsService } from '../services/batch-statistics.service';
 import { SystemConfigService } from '../services/system-config.service';
+import { JobSchedulerService } from '../services/job-scheduler.service';
 import { HybridConfigService } from '../config/hybrid-config';
+import { BatchProcessor } from './batch-processor';
 
 export interface ServiceContainer {
   refinementJobService: RefinementJobService;
   fileProcessingService: FileProcessingService;
   batchStatisticsService: BatchStatisticsService;
   systemConfigService: SystemConfigService;
+  jobSchedulerService: JobSchedulerService;
   hybridConfigService: HybridConfigService;
+  batchProcessor: BatchProcessor;
 }
 
 export class Container {
@@ -48,9 +52,14 @@ export class Container {
     this.services.batchStatisticsService = new BatchStatisticsService();
     this.services.fileProcessingService = new FileProcessingService();
     this.services.refinementJobService = new RefinementJobService();
+    this.services.jobSchedulerService = new JobSchedulerService();
+    this.services.batchProcessor = new BatchProcessor();
 
     // Initialize hybrid configuration with environment overrides
     await this.services.hybridConfigService.initializeWithOverrides();
+
+    // Initialize job scheduler
+    await this.services.jobSchedulerService.initialize();
 
     this.initialized = true;
     console.log('✅ Dependency injection container initialized');
@@ -103,6 +112,20 @@ export class Container {
   }
 
   /**
+   * Get job scheduler service
+   */
+  getJobSchedulerService(): JobSchedulerService {
+    return this.getServices().jobSchedulerService;
+  }
+
+  /**
+   * Get batch processor
+   */
+  getBatchProcessor(): BatchProcessor {
+    return this.getServices().batchProcessor;
+  }
+
+  /**
    * Reset container (for testing)
    */
   reset(): void {
@@ -122,11 +145,13 @@ export class Container {
     
     try {
       // Check each service
-             serviceChecks.systemConfigService = !!this.services.systemConfigService;
-       serviceChecks.hybridConfigService = !!this.services.hybridConfigService;
-       serviceChecks.refinementJobService = !!this.services.refinementJobService;
-       serviceChecks.fileProcessingService = !!this.services.fileProcessingService;
-       serviceChecks.batchStatisticsService = !!this.services.batchStatisticsService;
+      serviceChecks.systemConfigService = !!this.services.systemConfigService;
+      serviceChecks.hybridConfigService = !!this.services.hybridConfigService;
+      serviceChecks.refinementJobService = !!this.services.refinementJobService;
+      serviceChecks.fileProcessingService = !!this.services.fileProcessingService;
+      serviceChecks.batchStatisticsService = !!this.services.batchStatisticsService;
+      serviceChecks.jobSchedulerService = !!this.services.jobSchedulerService;
+      serviceChecks.batchProcessor = !!this.services.batchProcessor;
 
       // Test basic functionality
       if (this.services.systemConfigService) {
