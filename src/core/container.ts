@@ -3,7 +3,7 @@
  * Manages service instances and their dependencies
  */
 
-import { RefinementJobService } from '@/services';
+import { ApiKeyService, RefinementJobService } from '@/services';
 import { FileProcessingService } from '@/services';
 import { BatchStatisticsService } from '@/services';
 import { SystemConfigService } from '@/services';
@@ -24,6 +24,7 @@ export interface ServiceContainer {
   healthMonitoringService: HealthMonitoringService;
   hybridConfigService: HybridConfigService;
   batchProcessor: BatchProcessor;
+  apiKeyService: ApiKeyService;
 }
 
 export class Container {
@@ -66,7 +67,7 @@ export class Container {
       prisma
     );
     this.services.batchProcessor = new BatchProcessor();
-
+    this.services.apiKeyService = new ApiKeyService(prisma);
     // Initialize hybrid configuration with environment overrides
     await this.services.hybridConfigService.initializeWithOverrides();
 
@@ -152,6 +153,13 @@ export class Container {
   }
 
   /**
+   * Get API key service
+   */
+  getApiKeyService(): ApiKeyService {
+    return this.getServices().apiKeyService;
+  }
+
+  /**
    * Reset container (for testing)
    */
   reset(): void {
@@ -180,7 +188,7 @@ export class Container {
       serviceChecks.loggingService = !!this.services.loggingService;
       serviceChecks.healthMonitoringService = !!this.services.healthMonitoringService;
       serviceChecks.batchProcessor = !!this.services.batchProcessor;
-
+      serviceChecks.apiKeyService = !!this.services.apiKeyService;
       // Test basic functionality
       if (this.services.systemConfigService) {
         const testConfig = await this.services.systemConfigService.getConfig('processing.batch_size');

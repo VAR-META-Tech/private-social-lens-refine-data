@@ -10,6 +10,7 @@ export { SystemConfigService } from './system-config.service';
 export { JobSchedulerService } from './job-scheduler.service';
 export { LoggingService, ChildLogger, logger } from './logging.service';
 export { HealthMonitoringService } from './health-monitoring.service';
+export { ApiKeyService } from './api-key.service';
 
 // External API and Blockchain services
 export { refineFile } from './refinement-api.service';
@@ -31,3 +32,4 @@ export type { ConfigValue } from './system-config.service';
 export type { ScheduledJobConfig, JobExecutionContext } from './job-scheduler.service';
 export type { LogContext, LogMetrics } from './logging.service';
 export type { HealthCheckResult, SystemMetrics, AlertConfig } from './health-monitoring.service'; 
+export type { CreateApiKeyDto, ApiKeyResponse } from './api-key.service';

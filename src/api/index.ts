@@ -18,8 +18,6 @@ export {
 export {
   authMiddleware,
   optionalAuthMiddleware,
-  requireRole,
-  requirePermission,
   generateJwtToken,
   errorHandler,
   createApiError,

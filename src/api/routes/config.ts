@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import Joi from 'joi';
 import { container } from '@/core';
 import { asyncHandler, createApiError } from '../middleware/error-handler';
-import { AuthenticatedRequest, requirePermission, requireRole } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -69,14 +69,14 @@ const configCreateSchema = Joi.object({
  *                       updatedAt: { type: string, format: date-time }
  *                       updatedBy: { type: string }
  */
-router.get('/', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
 
   const category = req.query.category as string;
   const includeEncrypted = req.query.includeEncrypted === 'true';
 
   // Check if user has admin role for encrypted configs
-  if (includeEncrypted && req.user?.role !== 'admin') {
+  if (includeEncrypted && req.user?.type !== 'api_key') {
     throw createApiError('Admin role required to view encrypted configuration', 403, 'INSUFFICIENT_PERMISSIONS');
   }
 
@@ -129,7 +129,7 @@ router.get('/', requirePermission('read'), asyncHandler(async (req: Authenticate
  *                       count: { type: integer }
  *                       description: { type: string }
  */
-router.get('/categories', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/categories', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
 
   const allConfig = await systemConfig.getAllConfig();
@@ -184,12 +184,12 @@ router.get('/categories', requirePermission('read'), asyncHandler(async (req: Au
  *       404:
  *         description: Configuration key not found
  */
-router.get('/:key', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:key', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
   const decrypt = req.query.decrypt === 'true';
 
   // Check if user has admin role for encrypted configs
-  if (decrypt && req.user?.role !== 'admin') {
+  if (decrypt && req.user?.type !== 'api_key') {
     throw createApiError('Admin role required to decrypt configuration values', 403, 'INSUFFICIENT_PERMISSIONS');
   }
 
@@ -250,7 +250,7 @@ router.get('/:key', requirePermission('read'), asyncHandler(async (req: Authenti
  *       409:
  *         description: Configuration key already exists
  */
-router.post('/', requireRole(['admin']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = configCreateSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid configuration data', 400, 'VALIDATION_ERROR', error.details);
@@ -316,7 +316,7 @@ router.post('/', requireRole(['admin']), asyncHandler(async (req: AuthenticatedR
  *       400:
  *         description: Invalid configuration data
  */
-router.put('/:key', requireRole(['admin']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:key', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = configUpdateSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid configuration data', 400, 'VALIDATION_ERROR', error.details);
@@ -367,7 +367,7 @@ router.put('/:key', requireRole(['admin']), asyncHandler(async (req: Authenticat
  *       404:
  *         description: Configuration key not found
  */
-router.delete('/:key', requireRole(['admin']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:key', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
 
   // Check if key exists

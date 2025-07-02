@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import Joi from 'joi';
 import { container } from '@/core';
 import { asyncHandler, createApiError } from '../middleware/error-handler';
-import { AuthenticatedRequest, requirePermission } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -64,7 +64,7 @@ const timeRangeSchema = Joi.object({
  *                     averageGasPerFile: { type: string }
  *                     throughputPerHour: { type: number }
  */
-router.get('/overview', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/overview', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
   const jobScheduler = container.getJobSchedulerService();
 
@@ -143,7 +143,7 @@ router.get('/overview', requirePermission('read'), asyncHandler(async (req: Auth
  *       200:
  *         description: Job statistics
  */
-router.get('/jobs', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/jobs', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = timeRangeSchema.validate(req.query);
   if (error) {
     throw createApiError('Invalid query parameters', 400, 'VALIDATION_ERROR', error.details);
@@ -200,7 +200,7 @@ router.get('/jobs', requirePermission('read'), asyncHandler(async (req: Authenti
  *       200:
  *         description: Performance metrics
  */
-router.get('/performance', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/performance', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
 
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -252,7 +252,7 @@ router.get('/performance', requirePermission('read'), asyncHandler(async (req: A
  *       200:
  *         description: File processing statistics
  */
-router.get('/processing', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/processing', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
 
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -305,7 +305,7 @@ router.get('/processing', requirePermission('read'), asyncHandler(async (req: Au
  *       200:
  *         description: Error statistics
  */
-router.get('/errors', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/errors', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
 
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -352,7 +352,7 @@ router.get('/errors', requirePermission('read'), asyncHandler(async (req: Authen
  *       200:
  *         description: Trend analysis
  */
-router.get('/trends', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/trends', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
 
   const metric = req.query.metric as string || 'throughput';
@@ -412,7 +412,7 @@ router.get('/trends', requirePermission('read'), asyncHandler(async (req: Authen
  *             schema:
  *               type: string
  */
-router.get('/export', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  router.get('/export', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const batchStats = container.getBatchStatisticsService();
 
   const type = req.query.type as string || 'jobs';

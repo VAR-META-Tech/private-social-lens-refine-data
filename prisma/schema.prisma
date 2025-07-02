@@ -202,4 +202,20 @@ model SystemConfig {
   @@index([updatedAt])
 }
 
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String    
+  keyHash     String    @unique
+  keyHint     String    @db.VarChar(20)
+  description String?   @db.VarChar(255)
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime? 
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("api_keys")
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
 

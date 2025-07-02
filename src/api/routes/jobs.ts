@@ -7,7 +7,93 @@ import { Router, Request, Response } from 'express';
 import Joi from 'joi';
 import { container } from '@/core';
 import { asyncHandler, createApiError } from '../middleware/error-handler';
-import { AuthenticatedRequest, requirePermission } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth';
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     RefinementJob:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Unique identifier for the job
+ *         jobName:
+ *           type: string
+ *           description: Name of the job
+ *         jobType:
+ *           type: string
+ *           enum: [SCHEDULED_BATCH, RANGE_BASED, CLEANUP, HEALTH_CHECK, MANUAL]
+ *           description: Type of the job
+ *         cronSchedule:
+ *           type: string
+ *           description: Cron schedule for scheduled jobs
+ *           nullable: true
+ *         startFileId:
+ *           type: integer
+ *           description: Starting file ID for range-based jobs
+ *           nullable: true
+ *         endFileId:
+ *           type: integer
+ *           description: Ending file ID for range-based jobs
+ *           nullable: true
+ *         batchSize:
+ *           type: integer
+ *           description: Number of files to process in each batch
+ *         status:
+ *           type: string
+ *           enum: [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, RETRYING]
+ *           description: Current status of the job
+ *         priority:
+ *           type: integer
+ *           description: Job priority (1-10)
+ *         maxRetries:
+ *           type: integer
+ *           description: Maximum number of retry attempts
+ *         retryCount:
+ *           type: integer
+ *           description: Current number of retry attempts
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Job creation timestamp
+ *         scheduledAt:
+ *           type: string
+ *           format: date-time
+ *           description: Next scheduled execution time
+ *           nullable: true
+ *         startedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Job start timestamp
+ *           nullable: true
+ *         completedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Job completion timestamp
+ *           nullable: true
+ *         errorMessage:
+ *           type: string
+ *           description: Error message if job failed
+ *           nullable: true
+ *         metadata:
+ *           type: object
+ *           description: Additional job metadata
+ *           nullable: true
+ *         createdBy:
+ *           type: string
+ *           description: ID of the user who created the job
+ *       required:
+ *         - id
+ *         - jobName
+ *         - jobType
+ *         - batchSize
+ *         - status
+ *         - priority
+ *         - createdAt
+ *         - createdBy
+ */
 
 const router = Router();
 
@@ -110,7 +196,7 @@ const updateJobSchema = Joi.object({
  *                     limit: { type: integer }
  *                     offset: { type: integer }
  */
-router.get('/', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const filters = {
@@ -162,7 +248,7 @@ router.get('/', requirePermission('read'), asyncHandler(async (req: Authenticate
  *       404:
  *         description: Job not found
  */
-router.get('/:jobId', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
   const batchStats = container.getBatchStatisticsService();
 
@@ -225,7 +311,7 @@ router.get('/:jobId', requirePermission('read'), asyncHandler(async (req: Authen
  *       400:
  *         description: Invalid job data
  */
-router.post('/', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = createJobSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid job data', 400, 'VALIDATION_ERROR', error.details);
@@ -284,7 +370,7 @@ router.post('/', requirePermission('write'), asyncHandler(async (req: Authentica
  *       409:
  *         description: Cannot update running job
  */
-router.put('/:jobId', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = updateJobSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid job data', 400, 'VALIDATION_ERROR', error.details);
@@ -335,7 +421,7 @@ router.put('/:jobId', requirePermission('write'), asyncHandler(async (req: Authe
  *       409:
  *         description: Job cannot be started
  */
-router.post('/:jobId/start', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:jobId/start', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -381,7 +467,7 @@ router.post('/:jobId/start', requirePermission('write'), asyncHandler(async (req
  *       409:
  *         description: Job cannot be stopped
  */
-router.post('/:jobId/stop', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:jobId/stop', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -427,7 +513,7 @@ router.post('/:jobId/stop', requirePermission('write'), asyncHandler(async (req:
  *       409:
  *         description: Job cannot be retried
  */
-router.post('/:jobId/retry', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:jobId/retry', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -473,7 +559,7 @@ router.post('/:jobId/retry', requirePermission('write'), asyncHandler(async (req
  *       409:
  *         description: Cannot delete running job
  */
-router.delete('/:jobId', requirePermission('write'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -538,7 +624,7 @@ router.delete('/:jobId', requirePermission('write'), asyncHandler(async (req: Au
  *       404:
  *         description: Job not found
  */
-router.get('/:jobId/logs', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:jobId/logs', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);

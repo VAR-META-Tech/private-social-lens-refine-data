@@ -176,10 +176,34 @@ export class ApiServer {
             }
           }
         },
-        security: [
-          { bearerAuth: [] },
-          { apiKey: [] }
-        ]
+        // Remove global security and let each endpoint define its own
+        paths: {
+          '/api/health': {
+            get: {
+              security: []
+            }
+          },
+          '/api/health/detailed': {
+            get: {
+              security: []
+            }
+          },
+          '/api/health/metrics': {
+            get: {
+              security: []
+            }
+          },
+          '/api/health/readiness': {
+            get: {
+              security: []
+            }
+          },
+          '/api/health/liveness': {
+            get: {
+              security: []
+            }
+          }
+        }
       },
       apis: [
         './src/api/routes/*.ts',

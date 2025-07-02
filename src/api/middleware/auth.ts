@@ -7,36 +7,39 @@ import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { logger } from '@/services';
 import { createApiError } from './error-handler';
+import { ApiKeyService } from '@/services';
+import { container } from '@/core';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
-    email?: string;
-    role?: string;
-    permissions?: string[];
+    type: 'jwt' | 'api_key';
+    name?: string;
   };
 }
 
 /**
  * Authentication middleware
  */
-export function authMiddleware(
+export async function authMiddleware(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
     const apiKey = req.headers['x-api-key'] as string;
 
     // Check for API key authentication
     if (apiKey) {
-      const keyValidation = validateApiKey(apiKey);
-      if (keyValidation.isValid) {
+      const apiKeyService = container.getApiKeyService();
+      const keyDetails = await apiKeyService.validateApiKey(apiKey);
+      
+      if (keyDetails) {
         req.user = {
-          id: 'api-user',
-          role: keyValidation.role,
-          permissions: keyValidation.permissions
+          id: keyDetails.id,
+          type: 'api_key',
+          name: keyDetails.name
         };
         next();
         return;
@@ -52,9 +55,8 @@ export function authMiddleware(
 
       req.user = {
         id: decoded.sub || decoded.userId,
-        email: decoded.email,
-        role: decoded.role || 'user',
-        permissions: decoded.permissions || ['read']
+        type: 'jwt',
+        name: decoded.name
       };
 
       next();
@@ -76,23 +78,25 @@ export function authMiddleware(
 /**
  * Optional authentication middleware (allows unauthenticated requests)
  */
-export function optionalAuthMiddleware(
+export async function optionalAuthMiddleware(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
     const apiKey = req.headers['x-api-key'] as string;
 
     // Try to authenticate if credentials are provided
     if (apiKey) {
-      const keyValidation = validateApiKey(apiKey);
-      if (keyValidation.isValid) {
+      const apiKeyService = container.getApiKeyService();
+      const keyDetails = await apiKeyService.validateApiKey(apiKey);
+      
+      if (keyDetails) {
         req.user = {
-          id: 'api-user',
-          role: keyValidation.role,
-          permissions: keyValidation.permissions
+          id: keyDetails.id,
+          type: 'api_key',
+          name: keyDetails.name
         };
       }
     }
@@ -103,16 +107,15 @@ export function optionalAuthMiddleware(
         const decoded = verifyJwtToken(token);
         req.user = {
           id: decoded.sub || decoded.userId,
-          email: decoded.email,
-          role: decoded.role || 'user',
-          permissions: decoded.permissions || ['read']
+          type: 'jwt',
+          name: decoded.name
         };
       } catch (error) {
         // Ignore invalid tokens for optional auth
         logger.debug('Invalid token in optional auth', {
           operation: 'optional-auth',
           metadata: { error: (error as Error).message }
-        }, 'ApiServer');
+        });
       }
     }
 
@@ -120,72 +123,6 @@ export function optionalAuthMiddleware(
   } catch (error) {
     next(error);
   }
-}
-
-/**
- * Role-based authorization middleware
- */
-export function requireRole(allowedRoles: string[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(createApiError('Authentication required', 401, 'AUTHENTICATION_REQUIRED'));
-    }
-
-    if (!req.user.role || !allowedRoles.includes(req.user.role)) {
-      return next(createApiError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS'));
-    }
-
-    next();
-  };
-}
-
-/**
- * Permission-based authorization middleware
- */
-export function requirePermission(requiredPermission: string) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(createApiError('Authentication required', 401, 'AUTHENTICATION_REQUIRED'));
-    }
-
-    if (!req.user.permissions || !req.user.permissions.includes(requiredPermission)) {
-      return next(createApiError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS'));
-    }
-
-    next();
-  };
-}
-
-/**
- * Validate API key and return role/permissions info
- */
-function validateApiKey(apiKey: string): {
-  isValid: boolean;
-  role?: string;
-  permissions?: string[];
-} {
-  // Check for admin API key
-  if (apiKey === process.env.ADMIN_API_KEY && process.env.ADMIN_API_KEY) {
-    return {
-      isValid: true,
-      role: 'admin',
-      permissions: ['read', 'write', 'delete']
-    };
-  }
-
-  // Check for regular API key
-  if (apiKey === process.env.API_KEY && process.env.API_KEY) {
-    return {
-      isValid: true,
-      role: 'user',
-      permissions: ['read', 'write']
-    };
-  }
-
-  // Invalid API key
-  return {
-    isValid: false
-  };
 }
 
 /**

@@ -7,8 +7,6 @@
 export {
   authMiddleware,
   optionalAuthMiddleware,
-  requireRole,
-  requirePermission,
   generateJwtToken
 } from './auth'
 
