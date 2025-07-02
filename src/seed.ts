@@ -50,35 +50,9 @@ async function main() {
           },
           createdBy: "admin",
         },
-        {
-          jobName: "scheduler-weekly-cleanup",
-          jobType: JobType.CLEANUP,
-          cronSchedule: "0 0 * * 1", // Every Monday at midnight
-          status: JobStatus.PENDING,
-          priority: 3,
-          metadata: {
-            cleanup_older_than_days: 30,
-            tables: ["file_processing_logs", "batch_statistics"],
-            description: "Weekly cleanup scheduler",
-            isSchedulerJob: true
-          },
-          createdBy: "system",
-        },
-        {
-          jobName: "scheduler-health-check",
-          jobType: JobType.HEALTH_CHECK,
-          cronSchedule: "*/30 * * * *", // Every 30 minutes
-          status: JobStatus.PENDING,
-          priority: 10,
-          metadata: {
-            check_database: true,
-            check_api: true,
-            check_blockchain: true,
-            description: "System health monitoring scheduler",
-            isSchedulerJob: true
-          },
-          createdBy: "system",
-        },
+        // NOTE: Health check and weekly cleanup schedulers are automatically created 
+        // by JobSchedulerService.scheduleSystemJobs() when the service starts.
+        // Removed duplicate schedulers to avoid conflicts.
         {
           jobName: "scheduler-frequent-batch-refinement",
           jobType: JobType.SCHEDULED_BATCH,
@@ -99,6 +73,7 @@ async function main() {
     });
 
     console.log("✅ Database seeding completed successfully!");
+    console.log("ℹ️  System schedulers (health-check, weekly-cleanup) will be created automatically when service starts");
 
     // Print summary
     const summary = await getSeedingSummary();

@@ -81,6 +81,19 @@ export class JobSchedulerService {
         throw new Error(`Invalid cron expression: ${config.cronSchedule}`);
       }
 
+      // Check if job with same name already exists
+      const existingJob = await prisma.refinementJob.findFirst({
+        where: { 
+          jobName: config.jobName,
+          status: { in: [JobStatus.PENDING, JobStatus.RUNNING] }
+        }
+      });
+
+      if (existingJob) {
+        console.log(`⚠️ Scheduled job already exists: ${config.jobName}, skipping creation`);
+        return existingJob;
+      }
+
       // Create job in database
       const job = await prisma.refinementJob.create({
         data: {

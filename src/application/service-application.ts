@@ -117,34 +117,14 @@ export class ServiceApplication {
         }
       });
 
-      // Weekly cleanup every Sunday at 3 AM
-      await jobSchedulerService.createScheduledJob({
-        jobName: 'scheduler-weekly-cleanup',
-        jobType: JobType.CLEANUP,
-        cronSchedule: '0 3 * * 0', // Every Sunday at 3 AM
-        priority: 3,
-        metadata: {
-          description: 'Weekly cleanup scheduler of old data',
-          retentionDays: 30,
-          automated: true,
-          isSchedulerJob: true
-        }
-      });
-
-      // Health check every hour
-      await jobSchedulerService.createScheduledJob({
-        jobName: 'scheduler-hourly-health-check',
-        jobType: JobType.HEALTH_CHECK,
-        cronSchedule: '0 * * * *', // Every hour
-        priority: 2,
-        metadata: {
-          description: 'Hourly system health monitoring scheduler',
-          automated: true,
-          isSchedulerJob: true
-        }
-      });
+      // NOTE: Weekly cleanup is automatically created by JobSchedulerService.scheduleSystemJobs()
+      // Removed duplicate scheduler to avoid conflicts
+      
+      // NOTE: Health check is automatically created by JobSchedulerService.scheduleSystemJobs()
+      // If you need additional health checks, create with different names and schedules
 
       console.log('✅ Example scheduled jobs created');
+      console.log('ℹ️  System schedulers (health-check, weekly-cleanup) are created automatically by JobSchedulerService');
 
     } catch (error) {
       console.error('❌ Failed to create example jobs:', error);

@@ -144,12 +144,13 @@ export class FileProcessingService {
       }
     });
 
-    if (existingLog && existingLog.status == ProcessingStatus.SUCCESS) {
+    if (existingLog) {
       // Update existing log
+      const newStatus = reason.includes('already been refined') ? ProcessingStatus.ALREADY_REFINED : ProcessingStatus.SKIPPED;
       const log = await prisma.fileProcessingLog.update({
         where: { id: existingLog.id },
         data: {
-          status: ProcessingStatus.ALREADY_REFINED,
+          status: newStatus,
           message: reason,
           processedAt: new Date()
         }
