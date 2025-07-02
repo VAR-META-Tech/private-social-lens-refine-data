@@ -59,6 +59,14 @@ enum ConfigDataType {
   JSON
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  SYSTEM
+
+  @@map("user_roles")
+}
+
 // ==========================================
 // MODELS
 // ==========================================
@@ -216,6 +224,22 @@ model ApiKey {
   @@map("api_keys")
   @@index([isActive])
   @@index([expiresAt])
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  passwordHash  String
+  name          String?
+  role          UserRole    @default(USER)
+  isActive      Boolean     @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("users")
+  @@index([email])
+  @@index([isActive])
 }
 
 

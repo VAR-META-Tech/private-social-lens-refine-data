@@ -13,6 +13,7 @@ import { HealthMonitoringService } from '@/services';
 import { HybridConfigService } from '@/config';
 import { BatchProcessor } from './batch-processor';
 import { prisma } from '@/database/client';
+import { UserService } from '@/services/user.service'
 
 export interface ServiceContainer {
   refinementJobService: RefinementJobService;
@@ -25,12 +26,14 @@ export interface ServiceContainer {
   hybridConfigService: HybridConfigService;
   batchProcessor: BatchProcessor;
   apiKeyService: ApiKeyService;
+  userService: UserService;
 }
 
 export class Container {
   private static instance: Container;
   private services: Partial<ServiceContainer> = {};
   private initialized = false;
+  private userService: UserService | null = null;
 
   /**
    * Get singleton instance
@@ -68,6 +71,7 @@ export class Container {
     );
     this.services.batchProcessor = new BatchProcessor();
     this.services.apiKeyService = new ApiKeyService(prisma);
+    this.services.userService = new UserService(prisma);
     // Initialize hybrid configuration with environment overrides
     await this.services.hybridConfigService.initializeWithOverrides();
 
@@ -160,6 +164,16 @@ export class Container {
   }
 
   /**
+   * Get user service instance
+   */
+  getUserService(): UserService {
+    if (!this.userService) {
+      this.userService = new UserService(prisma);
+    }
+    return this.userService;
+  }
+
+  /**
    * Reset container (for testing)
    */
   reset(): void {
@@ -189,6 +203,7 @@ export class Container {
       serviceChecks.healthMonitoringService = !!this.services.healthMonitoringService;
       serviceChecks.batchProcessor = !!this.services.batchProcessor;
       serviceChecks.apiKeyService = !!this.services.apiKeyService;
+      serviceChecks.userService = !!this.services.userService;
       // Test basic functionality
       if (this.services.systemConfigService) {
         const testConfig = await this.services.systemConfigService.getConfig('processing.batch_size');

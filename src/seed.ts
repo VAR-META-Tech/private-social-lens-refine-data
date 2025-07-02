@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient, JobStatus, JobType } from "./generated/prisma";
+import * as bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,28 @@ async function main() {
     if (process.env.NODE_ENV === "development") {
       console.log("🧹 Clearing existing data...");
       await prisma.refinementJob.deleteMany();
+    }
+
+    // Create initial admin user
+    const adminEmail = 'admin@example.com'
+    const adminPassword = 'admin123' // This should be changed after first login
+
+    const existingAdmin = await prisma.user.findUnique({
+      where: { email: adminEmail }
+    })
+
+    if (!existingAdmin) {
+      const passwordHash = await bcrypt.hash(adminPassword, 10)
+      await prisma.user.create({
+        data: {
+          email: adminEmail,
+          passwordHash,
+          name: 'System Admin',
+          role: 'ADMIN',
+          isActive: true
+        }
+      })
+      console.log('Created initial admin user')
     }
 
     // Seed RefinementJobs

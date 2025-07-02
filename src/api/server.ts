@@ -13,7 +13,7 @@ import rateLimit from 'express-rate-limit';
 import { container } from '@/core';
 import { logger } from '@/services';
 import {authMiddleware, errorHandler, requestLogger} from "@/api/middleware";
-import {configRoutes, healthRoutes, jobRoutes, statsRoutes} from "@/api/routes";
+import {configRoutes, healthRoutes, jobRoutes, statsRoutes, userRoutes} from "@/api/routes";
 
 export class ApiServer {
   private app: express.Application;
@@ -113,6 +113,7 @@ export class ApiServer {
     this.app.use('/api/jobs', authMiddleware, jobRoutes);
     this.app.use('/api/config', authMiddleware, configRoutes);
     this.app.use('/api/stats', authMiddleware, statsRoutes);
+    this.app.use('/api/users', userRoutes);
 
     // Setup Swagger documentation BEFORE 404 handler
     this.setupSwaggerRoutes();
