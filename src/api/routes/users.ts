@@ -83,7 +83,6 @@ router.post('/login', asyncHandler(async (req: AuthenticatedRequest, res: Respon
  *     description: Create a new user (admin only)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     requestBody:
  *       required: true
  *       content:
@@ -108,7 +107,7 @@ router.post('/login', asyncHandler(async (req: AuthenticatedRequest, res: Respon
  */
 router.post('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   // Check if user has admin role
-  if (req.user?.type !== 'api_key') {
+  if (req.user?.role !== 'ADMIN') {
     throw createApiError('Admin role required', 403, 'INSUFFICIENT_PERMISSIONS')
   }
 
@@ -136,7 +135,6 @@ router.post('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, 
  *     description: Get paginated list of users (admin only)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -156,7 +154,7 @@ router.post('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, 
  */
 router.get('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   // Check if user has admin role
-  if (req.user?.type !== 'api_key') {
+  if (req.user?.role !== 'ADMIN') {
     throw createApiError('Admin role required', 403, 'INSUFFICIENT_PERMISSIONS')
   }
 
@@ -183,7 +181,6 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, r
  *     description: Get user by ID (admin or self)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -199,7 +196,7 @@ router.get('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, r
  */
 router.get('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   // Check if user has access (admin or self)
-  if (req.user?.type !== 'api_key' && req.user?.id !== req.params.userId) {
+  if (req.user?.role !== 'ADMIN' && req.user?.id !== req.params.userId) {
     throw createApiError('Access denied', 403, 'INSUFFICIENT_PERMISSIONS')
   }
 
@@ -225,7 +222,6 @@ router.get('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
  *     description: Update user details (admin or self)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -252,7 +248,7 @@ router.get('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
  *         description: User not found
  */
 router.put('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const isAdmin = req.user?.type === 'api_key'
+  const isAdmin = req.user?.role === 'ADMIN'
   const isSelf = req.user?.id === req.params.userId
 
   // Check if user has access (admin or self)
@@ -302,7 +298,6 @@ router.put('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
  *     description: Soft delete user (admin only)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -318,7 +313,7 @@ router.put('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
  */
 router.delete('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   // Check if user has admin role
-  if (req.user?.type !== 'api_key') {
+  if (req.user?.role !== 'ADMIN') {
     throw createApiError('Admin role required', 403, 'INSUFFICIENT_PERMISSIONS')
   }
 

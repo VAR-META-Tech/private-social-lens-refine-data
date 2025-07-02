@@ -15,6 +15,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     type: 'jwt' | 'api_key';
     name?: string;
+    role: 'USER' | 'ADMIN' | 'SYSTEM';
   };
 }
 
@@ -39,7 +40,8 @@ export async function authMiddleware(
         req.user = {
           id: keyDetails.id,
           type: 'api_key',
-          name: keyDetails.name
+          name: keyDetails.name,
+          role: 'SYSTEM'
         };
         next();
         return;
@@ -56,7 +58,8 @@ export async function authMiddleware(
       req.user = {
         id: decoded.sub || decoded.userId,
         type: 'jwt',
-        name: decoded.name
+        name: decoded.name,
+        role: decoded.role
       };
 
       next();
@@ -96,7 +99,8 @@ export async function optionalAuthMiddleware(
         req.user = {
           id: keyDetails.id,
           type: 'api_key',
-          name: keyDetails.name
+          name: keyDetails.name,
+          role: 'SYSTEM'
         };
       }
     }
@@ -108,7 +112,8 @@ export async function optionalAuthMiddleware(
         req.user = {
           id: decoded.sub || decoded.userId,
           type: 'jwt',
-          name: decoded.name
+          name: decoded.name,
+          role: decoded.role
         };
       } catch (error) {
         // Ignore invalid tokens for optional auth
