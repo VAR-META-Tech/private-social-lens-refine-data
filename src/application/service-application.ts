@@ -102,7 +102,7 @@ export class ServiceApplication {
     try {
       // Daily batch processing at 2 AM
       await jobSchedulerService.createScheduledJob({
-        jobName: 'daily-batch-refinement',
+        jobName: 'scheduler-daily-batch-refinement',
         jobType: JobType.SCHEDULED_BATCH,
         cronSchedule: '0 2 * * *', // Every day at 2 AM
         startFileId: 1000,
@@ -110,33 +110,36 @@ export class ServiceApplication {
         batchSize: 10,
         priority: 8,
         metadata: {
-          description: 'Daily automated batch refinement',
-          automated: true
+          description: 'Daily automated batch refinement scheduler',
+          automated: true,
+          isSchedulerJob: true
         }
       });
 
       // Weekly cleanup every Sunday at 3 AM
       await jobSchedulerService.createScheduledJob({
-        jobName: 'weekly-cleanup',
+        jobName: 'scheduler-weekly-cleanup',
         jobType: JobType.CLEANUP,
         cronSchedule: '0 3 * * 0', // Every Sunday at 3 AM
         priority: 3,
         metadata: {
-          description: 'Weekly cleanup of old data',
+          description: 'Weekly cleanup scheduler of old data',
           retentionDays: 30,
-          automated: true
+          automated: true,
+          isSchedulerJob: true
         }
       });
 
       // Health check every hour
       await jobSchedulerService.createScheduledJob({
-        jobName: 'hourly-health-check',
+        jobName: 'scheduler-hourly-health-check',
         jobType: JobType.HEALTH_CHECK,
         cronSchedule: '0 * * * *', // Every hour
         priority: 2,
         metadata: {
-          description: 'Hourly system health monitoring',
-          automated: true
+          description: 'Hourly system health monitoring scheduler',
+          automated: true,
+          isSchedulerJob: true
         }
       });
 

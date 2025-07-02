@@ -279,7 +279,13 @@ export class JobSchedulerService {
       endFileId,
       batchSize,
       priority: job.priority,
-      jobName: job.jobName
+      jobName: `worker-${job.jobName}-${startFileId}-${endFileId}`,
+      metadata: {
+        schedulerJobId: job.id,
+        schedulerJobName: job.jobName,
+        isWorkerJob: true,
+        parentJobType: 'SCHEDULED_BATCH'
+      }
     });
 
     console.log(`✅ Scheduled batch job completed: ${result.successfulFiles}/${result.totalFiles} files processed`);
@@ -569,23 +575,30 @@ export class JobSchedulerService {
   private async scheduleSystemJobs(): Promise<void> {
     // Health check every 30 minutes
     await this.createScheduledJob({
-      jobName: 'system-health-check',
+      jobName: 'scheduler-system-health-check',
       jobType: JobType.HEALTH_CHECK,
       cronSchedule: '*/30 * * * *',
       priority: 1,
-      metadata: { type: 'system', automated: true }
+      metadata: { 
+        type: 'system', 
+        automated: true,
+        isSchedulerJob: true,
+        description: 'System health monitoring scheduler'
+      }
     });
 
     // Cleanup every Sunday at 2 AM
     await this.createScheduledJob({
-      jobName: 'weekly-cleanup',
+      jobName: 'scheduler-system-weekly-cleanup',
       jobType: JobType.CLEANUP,
       cronSchedule: '0 2 * * 0',
       priority: 2,
       metadata: {
         type: 'system',
         automated: true,
-        retentionDays: 30
+        retentionDays: 30,
+        isSchedulerJob: true,
+        description: 'System weekly cleanup scheduler'
       }
     });
 

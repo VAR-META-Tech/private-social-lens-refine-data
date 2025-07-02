@@ -57,13 +57,18 @@ export class BatchProcessor {
 
     // Create refinement job
     const job = await refinementJobService.createJob({
-      jobName: config.jobName || `batch-refinement-${config.startFileId}-${config.endFileId}`,
+      jobName: config.jobName || `worker-batch-${config.startFileId}-${config.endFileId}-${Date.now()}`,
       jobType: JobType.RANGE_BASED,
       startFileId: config.startFileId,
       endFileId: config.endFileId,
       batchSize,
       priority,
-      metadata: config.metadata
+      metadata: {
+        ...config.metadata,
+        isWorkerJob: true,
+        schedulerJobName: config.jobName,
+        createdBy: 'batch-processor'
+      }
     });
 
     try {

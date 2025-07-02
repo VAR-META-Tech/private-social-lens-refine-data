@@ -64,8 +64,8 @@ The service supports multiple job types with different execution patterns and da
 
 | Job Type | Trigger | Configuration | Use Case |
 |----------|---------|---------------|----------|
-| **SCHEDULED_BATCH** | Cron schedule (automatic) | Metadata/defaults | Recurring automated processing |
-| **RANGE_BASED** | Manual/API call | Required parameters | One-time specific range processing |
+| **SCHEDULED_BATCH** | Cron schedule (automatic) | Metadata/defaults | Recurring automated processing (creates RANGE_BASED jobs) |
+| **RANGE_BASED** | Manual/API call or from SCHEDULED_BATCH | Required parameters | Actual file processing execution |
 
 ### Data Flow Architecture
 
@@ -74,7 +74,7 @@ graph TD
     A[User/Cron Scheduler] --> B{Job Type?}
     
     B -->|SCHEDULED_BATCH| C[Create Scheduled Batch Job]
-    B -->|RANGE_BASED| D[Create Range-Based Job]
+    B -->|RANGE_BASED| D[Create Range-Based Job<br/>Manual/API or from SCHEDULED_BATCH]
     
     C --> E[Job Config from metadata/defaults<br/>startFileId: 1000<br/>endFileId: 900<br/>cronSchedule: required]
     D --> F[Job Config from parameters<br/>startFileId: required<br/>endFileId: required<br/>No cron schedule]
@@ -82,8 +82,9 @@ graph TD
     E --> G[JobSchedulerService.executeScheduledBatchJob]
     F --> H[JobSchedulerService.executeRangeBasedJob]
     
-    G --> I[BatchProcessor.processByFileRange]
-    H --> I
+    G --> D
+    
+    H --> I[BatchProcessor.processByFileRange]
     
     I --> J[Create RefinementJob in DB<br/>Status: PENDING → RUNNING]
     
@@ -129,13 +130,13 @@ graph TD
     style N fill:#e8f5e8
 ```
 
-### 1. JobType.SCHEDULED_BATCH (Automated Scheduled Processing)
+### 1. JobType.SCHEDULED_BATCH (Automated Job Creator)
 
 **Characteristics:**
 - **Trigger**: Automatic execution based on cron schedule
 - **Configuration**: Retrieved from `job.metadata` with fallback to defaults
 - **Scheduling**: Requires `cronSchedule` field (e.g., `"0 2 * * *"` for daily at 2 AM)
-- **Use Case**: Recurring batch processing, daily/weekly automated jobs
+- **Use Case**: Recurring job creation, creates RANGE_BASED jobs for actual processing
 
 **Data Flow:**
 
@@ -159,17 +160,18 @@ graph TD
    - `JobSchedulerService.executeScheduledBatchJob()` is called
    - Configuration loaded from `job.metadata` with intelligent defaults
 
-3. **Processing Pipeline**
-   - Calls `BatchProcessor.processByFileRange()` with resolved configuration
-   - Follows shared processing logic (see below)
+3. **RANGE_BASED Job Creation**
+   - Creates a new RANGE_BASED job with resolved configuration
+   - New job inherits startFileId, endFileId, and other parameters
+   - RANGE_BASED job is then executed for actual file processing
 
-### 2. JobType.RANGE_BASED (Manual Range Processing)
+### 2. JobType.RANGE_BASED (Actual File Processing)
 
 **Characteristics:**
-- **Trigger**: Manual execution or API call
+- **Trigger**: Manual execution, API call, or created by SCHEDULED_BATCH
 - **Configuration**: `startFileId` and `endFileId` are required parameters
 - **Scheduling**: No cron schedule needed
-- **Use Case**: One-time processing of specific file ranges
+- **Use Case**: Actual file processing execution for specific file ranges
 
 **Data Flow:**
 
