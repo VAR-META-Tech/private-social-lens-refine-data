@@ -29,8 +29,6 @@ export interface EnvironmentConfig {
   refinementServiceApiBaseUrl: string;
   
   // IPFS / Pinata
-  pinataApiKey?: string;
-  pinataApiSecret?: string;
   pinataApiJwt?: string;
   
   // Logging
@@ -68,8 +66,6 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
       'https://a7df0ae43df690b889c1201546d7058ceb04d21b-8000.dstack-prod5.phala.network',
     
     // IPFS / Pinata
-    pinataApiKey: process.env.PINATA_API_KEY,
-    pinataApiSecret: process.env.PINATA_API_SECRET,
     pinataApiJwt: process.env.PINATA_API_JWT,
     
     // Logging

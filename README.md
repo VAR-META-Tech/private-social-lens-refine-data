@@ -137,8 +137,6 @@ REFINEMENT_SERVICE_API_BASE_URL=https://your-refinement-api.com
 #### IPFS Configuration (Optional)
 ```bash
 # Pinata IPFS configuration
-PINATA_API_KEY=your_pinata_api_key
-PINATA_API_SECRET=your_pinata_api_secret
 PINATA_API_JWT=your_pinata_jwt_token
 ```
 
@@ -151,7 +149,6 @@ VERBOSE=false
 
 # Feature flags
 AUTO_MIGRATE=true
-ENABLE_SCHEDULER=true
 ```
 
 ## 🚀 Usage
