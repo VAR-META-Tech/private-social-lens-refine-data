@@ -31,11 +31,12 @@ export function authMiddleware(
 
     // Check for API key authentication
     if (apiKey) {
-      if (validateApiKey(apiKey)) {
+      const keyValidation = validateApiKey(apiKey);
+      if (keyValidation.isValid) {
         req.user = {
           id: 'api-user',
-          role: 'api',
-          permissions: ['read', 'write']
+          role: keyValidation.role,
+          permissions: keyValidation.permissions
         };
         next();
         return;
@@ -85,13 +86,18 @@ export function optionalAuthMiddleware(
     const apiKey = req.headers['x-api-key'] as string;
 
     // Try to authenticate if credentials are provided
-    if (apiKey && validateApiKey(apiKey)) {
-      req.user = {
-        id: 'api-user',
-        role: 'api',
-        permissions: ['read', 'write']
-      };
-    } else if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (apiKey) {
+      const keyValidation = validateApiKey(apiKey);
+      if (keyValidation.isValid) {
+        req.user = {
+          id: 'api-user',
+          role: keyValidation.role,
+          permissions: keyValidation.permissions
+        };
+      }
+    }
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       try {
         const decoded = verifyJwtToken(token);
@@ -151,17 +157,46 @@ export function requirePermission(requiredPermission: string) {
 }
 
 /**
- * Validate API key
+ * Validate API key and return role/permissions info
  */
-function validateApiKey(apiKey: string): boolean {
-  // In production, this should validate against a database or secure store
-  const validApiKeys = [
-    process.env.API_KEY,
-    process.env.ADMIN_API_KEY,
-    'demo-api-key-for-development' // Remove in production
-  ].filter(Boolean);
+function validateApiKey(apiKey: string): {
+  isValid: boolean;
+  role: string;
+  permissions: string[];
+} {
+  // Check for admin API key
+  if (apiKey === process.env.ADMIN_API_KEY && process.env.ADMIN_API_KEY) {
+    return {
+      isValid: true,
+      role: 'admin',
+      permissions: ['read', 'write']
+    };
+  }
 
-  return validApiKeys.includes(apiKey);
+  // Check for regular API key
+  if (apiKey === process.env.API_KEY && process.env.API_KEY) {
+    return {
+      isValid: true,
+      role: 'api',
+      permissions: ['read', 'write']
+    };
+  }
+
+  // Check for demo API key (development only)
+  if (apiKey === 'demo-api-key-for-development') {
+    return {
+      isValid: true,
+      role: 'api',
+      permissions: ['read', 'write']
+    };
+  }
+
+  // Invalid API key
+  return {
+    isValid: false,
+    role: '',
+    permissions: []
+  };
 }
 
 /**
