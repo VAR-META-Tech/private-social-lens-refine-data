@@ -1,11 +1,11 @@
 {
   "name": "batch-refinement",
   "version": "1.0.0",
-  "description": "Batch refinement script for processing files",
-  "main": "src/index.js",
+  "description": "Batch refinement service for processing files",
+  "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node dist/index-service.js",
     "cli": "tsx src/index.ts",
     "service": "tsx src/index-service.ts",
     "api": "tsx src/index-api.ts",
@@ -18,7 +18,14 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset",
     "db:deploy": "prisma migrate deploy",
-    "db:status": "prisma migrate status"
+    "db:status": "prisma migrate status",
+    "docker:build": "docker build -t batch-refinement .",
+    "docker:run": "docker run -d --name batch-refinement -p 3000:3000 batch-refinement",
+    "docker:stop": "docker stop batch-refinement",
+    "docker:logs": "docker logs -f batch-refinement",
+    "docker:push": "docker push batch-refinement",
+    "docker:clean": "docker rm batch-refinement",
+    "prepare": "prisma generate"
   },
   "prisma": {
     "seed": "tsx src/seed.ts"
@@ -58,5 +65,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

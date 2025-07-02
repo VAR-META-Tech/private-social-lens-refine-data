@@ -1,27 +1,57 @@
-FROM node:18-slim
+# =============================================================================
+# BATCH REFINEMENT SERVICE - STANDALONE DOCKERFILE
+# =============================================================================
+# Compatible with: Docker, Kubernetes, Cloud Run, ECS, Azure Container Instances
 
+FROM node:18-alpine AS base
+RUN apk add --no-cache curl postgresql-client
+
+FROM base AS deps
+WORKDIR /app
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci --only=production && npm cache clean --force
+RUN npx prisma generate
+
+FROM base AS builder
+WORKDIR /app
+COPY package*.json ./
+COPY tsconfig.json ./
+RUN npm ci
+COPY src ./src
+COPY prisma ./prisma
+RUN npm run build
+
+FROM base AS runtime
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install
+# Security: non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 --ingroup nodejs batch-refinement
 
-# Copy application code
-COPY src/ ./src/
+# Copy application
+COPY --from=builder --chown=batch-refinement:nodejs /app/dist ./dist
+COPY --from=deps --chown=batch-refinement:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=batch-refinement:nodejs /app/prisma ./prisma
+COPY --chown=batch-refinement:nodejs package*.json ./
 
-# Create directories for logs
-RUN mkdir -p logs
+# Create directories and entrypoint
+RUN mkdir -p logs data && chown -R batch-refinement:nodejs logs data
+COPY --chown=batch-refinement:nodejs docker-entrypoint.sh ./
+RUN chmod +x ./docker-entrypoint.sh
 
-# Set environment variables (default values - can be overridden at runtime)
-ENV REFINEMENT_SERVICE_API_BASE_URL=https://a7df0ae43df690b889c1201546d7058ceb04d21b-8000.dstack-prod5.phala.network
+# Environment defaults
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
+ENV AUTO_MIGRATE=true
 
-ENV BATCH_SIZE=10
-ENV REFINER_ID=7
-ENV VERBOSE=false
-ENV RPC_URL=https://rpc.moksha.vana.org
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Define entrypoint
-ENTRYPOINT ["node", "src/index.js"]
+USER batch-refinement
+EXPOSE $PORT
 
-# Default command (can be overridden)
-CMD ["--help"] 
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["service"] 
