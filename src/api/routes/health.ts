@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { container } from '@/core';
-import { asyncHandler } from '@/api';
+import { asyncHandler } from '../middleware/error-handler';
 
 const router = Router();
 

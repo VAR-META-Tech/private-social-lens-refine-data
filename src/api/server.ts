@@ -25,7 +25,6 @@ export class ApiServer {
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
-    this.setupSwagger();
     this.setupErrorHandling();
   }
 
@@ -116,8 +115,11 @@ export class ApiServer {
     this.app.use('/api/config', authMiddleware, configRoutes);
     this.app.use('/api/stats', authMiddleware, statsRoutes);
 
-    // 404 handler for API routes
-    this.app.use('/api/*', (req, res) => {
+    // Setup Swagger documentation BEFORE 404 handler
+    this.setupSwaggerRoutes();
+
+    // 404 handler for API routes - use regex pattern instead of wildcard
+    this.app.use(/^\/api\/.*/, (req, res) => {
       res.status(404).json({
         error: 'API endpoint not found',
         path: req.path,
@@ -140,9 +142,9 @@ export class ApiServer {
   }
 
   /**
-   * Setup Swagger API documentation
+   * Setup Swagger API documentation routes
    */
-  private setupSwagger(): void {
+  private setupSwaggerRoutes(): void {
     const swaggerOptions = {
       definition: {
         openapi: '3.0.0',

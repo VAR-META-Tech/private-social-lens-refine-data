@@ -6,7 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { logger } from '@/services';
-import { createApiError } from '@/api';
+import { createApiError } from './error-handler';
 
 export interface AuthenticatedRequest extends Request {
   user?: {

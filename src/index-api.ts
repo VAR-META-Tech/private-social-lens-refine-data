@@ -51,7 +51,7 @@ async function startApiServer() {
 }
 
 // Start if this file is run directly
-if (process.argv[1] && process.argv[1].endsWith('index-api.js')) {
+if (require.main === module) {
   startApiServer();
 }
 

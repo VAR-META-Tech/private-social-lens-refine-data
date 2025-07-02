@@ -6,8 +6,8 @@
 import { Router, Request, Response } from 'express';
 import Joi from 'joi';
 import { container } from '@/core';
-import { asyncHandler, createApiError } from '@/api';
-import { AuthenticatedRequest, requirePermission, requireRole } from '@/api';
+import { asyncHandler, createApiError } from '../middleware/error-handler';
+import { AuthenticatedRequest, requirePermission, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -98,6 +98,59 @@ router.get('/', requirePermission('read'), asyncHandler(async (req: Authenticate
   res.json({
     config,
     count: config.length,
+    timestamp: new Date().toISOString()
+  });
+}));
+
+/**
+ * @swagger
+ * /api/config/categories:
+ *   get:
+ *     tags: [Configuration]
+ *     summary: List configuration categories
+ *     description: Get list of configuration categories (prefixes)
+ *     security:
+ *       - bearerAuth: []
+ *       - apiKey: []
+ *     responses:
+ *       200:
+ *         description: Configuration categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 categories:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name: { type: string }
+ *                       count: { type: integer }
+ *                       description: { type: string }
+ */
+router.get('/categories', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const systemConfig = container.getSystemConfigService();
+
+  const allConfig = await systemConfig.getAllConfig();
+
+  // Group by category (prefix before first dot)
+  const categoryMap = new Map<string, number>();
+
+  allConfig.forEach(config => {
+    const category = config.key.split('.')[0];
+    categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
+  });
+
+  const categories = Array.from(categoryMap.entries()).map(([name, count]) => ({
+    name,
+    count,
+    description: getCategoryDescription(name)
+  }));
+
+  res.json({
+    categories,
+    totalCategories: categories.length,
     timestamp: new Date().toISOString()
   });
 }));
@@ -332,58 +385,7 @@ router.delete('/:key', requireRole(['admin']), asyncHandler(async (req: Authenti
   });
 }));
 
-/**
- * @swagger
- * /api/config/categories:
- *   get:
- *     tags: [Configuration]
- *     summary: List configuration categories
- *     description: Get list of configuration categories (prefixes)
- *     security:
- *       - bearerAuth: []
- *       - apiKey: []
- *     responses:
- *       200:
- *         description: Configuration categories
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 categories:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       name: { type: string }
- *                       count: { type: integer }
- *                       description: { type: string }
- */
-router.get('/categories', requirePermission('read'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const systemConfig = container.getSystemConfigService();
 
-  const allConfig = await systemConfig.getAllConfig();
-
-  // Group by category (prefix before first dot)
-  const categoryMap = new Map<string, number>();
-
-  allConfig.forEach(config => {
-    const category = config.key.split('.')[0];
-    categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
-  });
-
-  const categories = Array.from(categoryMap.entries()).map(([name, count]) => ({
-    name,
-    count,
-    description: getCategoryDescription(name)
-  }));
-
-  res.json({
-    categories,
-    totalCategories: categories.length,
-    timestamp: new Date().toISOString()
-  });
-}));
 
 // /**
 //  * @swagger

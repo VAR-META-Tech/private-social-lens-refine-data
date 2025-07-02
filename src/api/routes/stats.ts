@@ -6,8 +6,8 @@
 import { Router, Request, Response } from 'express';
 import Joi from 'joi';
 import { container } from '@/core';
-import { asyncHandler, createApiError } from '@/api';
-import { AuthenticatedRequest, requirePermission } from '@/api';
+import { asyncHandler, createApiError } from '../middleware/error-handler';
+import { AuthenticatedRequest, requirePermission } from '../middleware/auth';
 
 const router = Router();
 
