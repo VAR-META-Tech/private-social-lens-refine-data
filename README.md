@@ -112,8 +112,6 @@ HOST=0.0.0.0
 
 # API and security
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
-API_KEY=your-api-key-for-development
-ADMIN_API_KEY=your-admin-api-key-with-full-access
 
 # Logging
 LOG_LEVEL=info
