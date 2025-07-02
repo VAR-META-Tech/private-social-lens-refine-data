@@ -64,7 +64,7 @@ The service supports multiple job types with different execution patterns and da
 
 | Job Type | Trigger | Configuration | Use Case |
 |----------|---------|---------------|----------|
-| **SCHEDULED_BATCH** | Cron schedule (automatic) | Metadata/defaults | Recurring automated processing (creates RANGE_BASED jobs) |
+| **SCHEDULED_BATCH** | Cron schedule (automatic) | Auto-incrementing ranges | Recurring automated processing (creates RANGE_BASED jobs with calculated ranges) |
 | **RANGE_BASED** | Manual/API call or from SCHEDULED_BATCH | Required parameters | Actual file processing execution |
 
 ### Data Flow Architecture
@@ -76,7 +76,7 @@ graph TD
     B -->|SCHEDULED_BATCH| C[Create Scheduled Batch Job]
     B -->|RANGE_BASED| D[Create Range-Based Job<br/>Manual/API or from SCHEDULED_BATCH]
     
-    C --> E[Job Config from metadata/defaults<br/>startFileId: 1000<br/>endFileId: 900<br/>cronSchedule: required]
+    C --> E[Job Config from metadata/defaults<br/>batchIncrement: 100<br/>cronSchedule: required<br/>Auto-calculate next range]
     D --> F[Job Config from parameters<br/>startFileId: required<br/>endFileId: required<br/>No cron schedule]
     
     E --> G[JobSchedulerService.executeScheduledBatchJob]
@@ -142,15 +142,15 @@ graph TD
 
 1. **Job Creation & Scheduling**
    ```typescript
-   // Example: Daily batch processing at 2 AM
+   // Example: Daily batch processing at 2 AM with auto-incrementing ranges
    {
      jobName: 'daily-batch-refinement',
      jobType: 'SCHEDULED_BATCH',
      cronSchedule: '0 2 * * *',
      metadata: {
-       startFileId: 1000,
-       endFileId: 900,
-       description: 'Daily automated processing'
+       batchIncrement: 100,          // Process 100 files per execution
+       initialStartFileId: 100,      // First run: 200-100, second run: 300-200, etc.
+       description: 'Daily automated processing with auto-incrementing ranges'
      }
    }
    ```
@@ -160,10 +160,45 @@ graph TD
    - `JobSchedulerService.executeScheduledBatchJob()` is called
    - Configuration loaded from `job.metadata` with intelligent defaults
 
-3. **RANGE_BASED Job Creation**
-   - Creates a new RANGE_BASED job with resolved configuration
-   - New job inherits startFileId, endFileId, and other parameters
-   - RANGE_BASED job is then executed for actual file processing
+3. **Dynamic Range Calculation & RANGE_BASED Job Creation**
+   - Calculates next file range based on previous execution:
+     - First run: `initialStartFileId` to `initialEndFileId` (e.g., 100 to 0)
+     - Subsequent runs: Previous start + increment to previous start (e.g., 200 to 100)
+   - Creates a new RANGE_BASED job with calculated range
+   - Updates job metadata with execution tracking information
+        - RANGE_BASED job is then executed for actual file processing
+
+#### Auto-Incrementing Range Logic
+
+The SCHEDULED_BATCH jobs use an intelligent auto-incrementing range system:
+
+**Configuration Parameters:**
+- `batchIncrement`: Number of files to process per execution (default: 100)
+- `initialStartFileId`: Starting file ID for first execution (default: 100)
+
+**Execution Pattern:**
+```
+Execution 1: startFileId=200,  endFileId=100  (processes files 200 down to 100)
+Execution 2: startFileId=300,  endFileId=200  (processes files 300 down to 200)
+Execution 3: startFileId=400,  endFileId=300  (processes files 400 down to 300)
+...
+Execution n: startFileId=(n+1)*100, endFileId=n*100
+```
+
+**Tracking in Metadata:**
+```typescript
+metadata: {
+  lastExecution: {
+    executionNumber: 3,
+    startFileId: 400,
+    endFileId: 300,
+    executedAt: "2024-01-15T02:00:00Z",
+    filesProcessed: 101,
+    successfulFiles: 95,
+    failedFiles: 6
+  }
+}
+```
 
 ### 2. JobType.RANGE_BASED (Actual File Processing)
 

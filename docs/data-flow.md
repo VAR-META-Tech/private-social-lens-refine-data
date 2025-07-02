@@ -47,8 +47,8 @@ The database schema is designed to transform the batch refinement system from a 
 | `metadata` | JSON | Flexible metadata storage |
 
 **Job Types**:
-- `SCHEDULED_BATCH`: Automated cron jobs (e.g., daily at 2 AM)
-- `RANGE_BASED`: Process files from ID X to Y
+- `SCHEDULED_BATCH`: Automated cron jobs with auto-incrementing ranges (e.g., daily at 2 AM)
+- `RANGE_BASED`: Process files from ID X to Y (manual or created by SCHEDULED_BATCH)
 - `CLEANUP`: Clean up old logs and data
 - `HEALTH_CHECK`: System health monitoring
 - `MANUAL`: Manually triggered jobs
@@ -259,16 +259,15 @@ VALUES ('1.0.0', 'Initial schema with Prisma setup');
 
 ### Step 2: Job Creation (Cron trigger or Manual)
 ```sql
--- Create RefinementJob
+-- Create RefinementJob (SCHEDULED_BATCH with auto-incrementing ranges)
 INSERT INTO refinement_jobs (
     id, job_name, job_type, cron_schedule, 
-    start_file_id, end_file_id, batch_size, 
-    status, priority, created_by
+    batch_size, status, priority, created_by, metadata
 )
 VALUES (
     'cuid_12345', 'daily-batch-refinement', 'SCHEDULED_BATCH', 
-    '0 2 * * *', 1000, 900, 10, 
-    'PENDING', 8, 'system'
+    '0 2 * * *', 10, 'PENDING', 8, 'system',
+    '{"batchIncrement": 100, "initialStartFileId": 1000, "description": "Daily auto-incrementing batch processing"}'
 );
 ```
 

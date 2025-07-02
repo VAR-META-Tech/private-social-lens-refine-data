@@ -64,7 +64,20 @@ async function main() {
         const startFileId = parseInt(args[2]);
         const endFileId = parseInt(args[3]);
 
-        if (!jobType || !startFileId || !endFileId) {
+        if (!jobType) {
+          console.error('❌ Usage: npm run service schedule <RANGE_BASED|CLEANUP|HEALTH_CHECK> <startFileId> <endFileId>');
+          console.error('Note: SCHEDULED_BATCH jobs should be created via API with metadata configuration');
+          process.exit(1);
+        }
+
+        if (jobType === 'SCHEDULED_BATCH') {
+          console.error('❌ SCHEDULED_BATCH jobs cannot be created via command line.');
+          console.error('Use the API with proper metadata configuration:');
+          console.error('  { batchIncrement: 100, initialStartFileId: 100 }');
+          process.exit(1);
+        }
+
+        if (!startFileId || !endFileId) {
           console.error('❌ Usage: npm run service schedule <RANGE_BASED|CLEANUP|HEALTH_CHECK> <startFileId> <endFileId>');
           process.exit(1);
         }
@@ -124,11 +137,11 @@ Examples:
   npm run service status               # Check status
   npm run service schedule RANGE_BASED 1000 900   # Process files 1000-900
   npm run service schedule CLEANUP 0 0 # Run cleanup
-  npm run service create-examples      # Create daily/weekly jobs
+  npm run service create-examples      # Create SCHEDULED_BATCH with auto-increment
 
 Job Types:
-  - SCHEDULED_BATCH: Automated batch processing
-  - RANGE_BASED: Process specific file range
+  - SCHEDULED_BATCH: Automated batch processing with auto-incrementing ranges
+  - RANGE_BASED: Process specific file range (manual or created by SCHEDULED_BATCH)
   - CLEANUP: Clean old logs and data
   - HEALTH_CHECK: System health monitoring
   - MANUAL: One-time manual execution

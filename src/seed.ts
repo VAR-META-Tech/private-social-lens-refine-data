@@ -25,14 +25,14 @@ async function main() {
           jobName: "scheduler-daily-batch-refinement",
           jobType: JobType.SCHEDULED_BATCH,
           cronSchedule: "0 2 * * *", // Daily at 2 AM
-          startFileId: 1000,
-          endFileId: 900,
           batchSize: 10,
           status: JobStatus.PENDING,
           priority: 8,
           metadata: {
             description: "Daily automated batch refinement scheduler",
-            isSchedulerJob: true
+            isSchedulerJob: true,
+            batchIncrement: 100,
+            initialStartFileId: 1000
           },
           createdBy: "system",
         },
@@ -83,15 +83,15 @@ async function main() {
           jobName: "scheduler-frequent-batch-refinement",
           jobType: JobType.SCHEDULED_BATCH,
           cronSchedule: "*/1 * * * *", // Every 1 minute
-          startFileId: 500,
-          endFileId: 400,
           batchSize: 5,
           status: JobStatus.PENDING,
           priority: 7,
           metadata: {
             description: "High frequency batch processing scheduler for testing",
             max_concurrent_batches: 2,
-            isSchedulerJob: true
+            isSchedulerJob: true,
+            batchIncrement: 50,
+            initialStartFileId: 500
           },
           createdBy: "system",
         },

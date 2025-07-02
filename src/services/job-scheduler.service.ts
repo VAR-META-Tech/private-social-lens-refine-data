@@ -264,11 +264,11 @@ export class JobSchedulerService {
 
     console.log(`📦 Executing scheduled batch job: ${job.jobName}`);
 
-    // Get configuration for what files to process
-    const config = job.metadata as any || {};
-    const startFileId = config.startFileId || job.startFileId || 1000;
-    const endFileId = config.endFileId || job.endFileId || 900;
+    // Calculate range for this execution
+    const { startFileId, endFileId } = await this.calculateNextRange(job);
     const batchSize = job.batchSize;
+
+    console.log(`🎯 Processing range: ${startFileId} to ${endFileId} (batch size: ${batchSize})`);
 
     // Import and execute batch processor
     const { container } = await import('../core/container');
@@ -284,11 +284,93 @@ export class JobSchedulerService {
         schedulerJobId: job.id,
         schedulerJobName: job.jobName,
         isWorkerJob: true,
-        parentJobType: 'SCHEDULED_BATCH'
+        parentJobType: 'SCHEDULED_BATCH',
+        executionRange: { startFileId, endFileId },
+        executionNumber: await this.getNextExecutionNumber(job)
       }
     });
 
+    // Update job metadata with last execution info
+    await this.updateLastExecutionInfo(job, startFileId, endFileId, result);
+
     console.log(`✅ Scheduled batch job completed: ${result.successfulFiles}/${result.totalFiles} files processed`);
+  }
+
+  /**
+   * Calculate the next file range to process for a scheduled batch job
+   */
+  private async calculateNextRange(job: RefinementJob): Promise<{ startFileId: number; endFileId: number }> {
+    const config = job.metadata as any || {};
+    
+    // Get batch increment size from config (default: 100)
+    const batchIncrement = config.batchIncrement || 100;
+    
+    // Get last execution info
+    const lastExecution = config.lastExecution;
+    
+    if (!lastExecution) {
+      // First execution: startFileId = initialStartFileId + batchIncrement, endFileId = initialStartFileId
+      const initialStartFileId = config.initialStartFileId || 100;
+      const firstStartFileId = initialStartFileId + batchIncrement;
+      const firstEndFileId = initialStartFileId;
+      
+      return {
+        startFileId: firstStartFileId,
+        endFileId: firstEndFileId
+      };
+    }
+    
+    // Calculate next range based on last execution
+    const lastStartFileId = lastExecution.startFileId;
+    const nextStartFileId = lastStartFileId + batchIncrement;
+    const nextEndFileId = lastStartFileId; // Previous start becomes new end
+    
+    return {
+      startFileId: nextStartFileId,
+      endFileId: nextEndFileId
+    };
+  }
+
+  /**
+   * Get the next execution number for tracking
+   */
+  private async getNextExecutionNumber(job: RefinementJob): Promise<number> {
+    const config = job.metadata as any || {};
+    const lastExecution = config.lastExecution;
+    
+    return lastExecution ? (lastExecution.executionNumber + 1) : 1;
+  }
+
+  /**
+   * Update job metadata with last execution information
+   */
+  private async updateLastExecutionInfo(
+    job: RefinementJob, 
+    startFileId: number, 
+    endFileId: number, 
+    result: any
+  ): Promise<void> {
+    const executionNumber = await this.getNextExecutionNumber(job);
+    
+    const updatedMetadata = {
+      ...(job.metadata as any || {}),
+      lastExecution: {
+        executionNumber,
+        startFileId,
+        endFileId,
+        executedAt: new Date(),
+        filesProcessed: result.totalFiles,
+        successfulFiles: result.successfulFiles,
+        failedFiles: result.failedFiles
+      }
+    };
+
+    await prisma.refinementJob.update({
+      where: { id: job.id },
+      data: { metadata: updatedMetadata }
+    });
+
+    console.log(`📝 Updated execution info: Run #${executionNumber}, Range: ${startFileId}-${endFileId}`);
   }
 
   /**

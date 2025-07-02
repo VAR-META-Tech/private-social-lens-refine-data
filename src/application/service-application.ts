@@ -105,14 +105,15 @@ export class ServiceApplication {
         jobName: 'scheduler-daily-batch-refinement',
         jobType: JobType.SCHEDULED_BATCH,
         cronSchedule: '0 2 * * *', // Every day at 2 AM
-        startFileId: 1000,
-        endFileId: 900,
         batchSize: 10,
         priority: 8,
         metadata: {
           description: 'Daily automated batch refinement scheduler',
           automated: true,
-          isSchedulerJob: true
+          isSchedulerJob: true,
+          // Dynamic range configuration
+          batchIncrement: 100,          // Process 100 files per batch
+          initialStartFileId: 100       // First run: 200-100, second run: 300-200, etc.
         }
       });
 

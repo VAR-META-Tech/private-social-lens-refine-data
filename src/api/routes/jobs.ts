@@ -32,7 +32,17 @@ const createJobSchema = Joi.object({
   }),
   batchSize: Joi.number().integer().min(1).max(1000).default(10),
   priority: Joi.number().integer().min(1).max(10).default(5),
-  metadata: Joi.object().optional()
+  metadata: Joi.object().when('jobType', {
+    is: 'SCHEDULED_BATCH',
+    then: Joi.object({
+      batchIncrement: Joi.number().integer().min(1).default(100),
+      initialStartFileId: Joi.number().integer().min(1).default(1),
+      description: Joi.string().optional(),
+      automated: Joi.boolean().optional(),
+      isSchedulerJob: Joi.boolean().optional()
+    }).unknown(true),
+    otherwise: Joi.object().optional()
+  })
 });
 
 const updateJobSchema = Joi.object({
@@ -198,12 +208,17 @@ router.get('/:jobId', requirePermission('read'), asyncHandler(async (req: Authen
  *             properties:
  *               jobName: { type: string, minLength: 1, maxLength: 255 }
  *               jobType: { type: string, enum: [SCHEDULED_BATCH, RANGE_BASED, CLEANUP, HEALTH_CHECK, MANUAL] }
- *               cronSchedule: { type: string }
- *               startFileId: { type: integer, minimum: 1 }
- *               endFileId: { type: integer, minimum: 1 }
+ *               cronSchedule: { type: string, description: "Required for SCHEDULED_BATCH" }
+ *               startFileId: { type: integer, minimum: 1, description: "Required for RANGE_BASED only" }
+ *               endFileId: { type: integer, minimum: 1, description: "Required for RANGE_BASED only" }
  *               batchSize: { type: integer, minimum: 1, maximum: 1000, default: 10 }
  *               priority: { type: integer, minimum: 1, maximum: 10, default: 5 }
- *               metadata: { type: object }
+ *               metadata: 
+ *                 type: object
+ *                 description: "For SCHEDULED_BATCH: { batchIncrement: 100, initialStartFileId: 1 }"
+ *                 properties:
+ *                   batchIncrement: { type: integer, minimum: 1, default: 100, description: "Number of files to process per execution (SCHEDULED_BATCH only)" }
+ *                   initialStartFileId: { type: integer, minimum: 1, default: 100, description: "Starting file ID for first execution (SCHEDULED_BATCH only)" }
  *     responses:
  *       201:
  *         description: Job created successfully
