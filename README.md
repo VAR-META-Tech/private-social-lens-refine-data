@@ -56,6 +56,286 @@ The service has been transformed from a CLI tool into a **long-running service**
 
 ---
 
+## 📊 Data Flow & Job Types
+
+The service supports multiple job types with different execution patterns and data flows. Here's how the two main job types work:
+
+### Job Types Overview
+
+| Job Type | Trigger | Configuration | Use Case |
+|----------|---------|---------------|----------|
+| **SCHEDULED_BATCH** | Cron schedule (automatic) | Metadata/defaults | Recurring automated processing |
+| **RANGE_BASED** | Manual/API call | Required parameters | One-time specific range processing |
+
+### Data Flow Architecture
+
+```mermaid
+graph TD
+    A[User/Cron Scheduler] --> B{Job Type?}
+    
+    B -->|SCHEDULED_BATCH| C[Create Scheduled Batch Job]
+    B -->|RANGE_BASED| D[Create Range-Based Job]
+    
+    C --> E[Job Config from metadata/defaults<br/>startFileId: 1000<br/>endFileId: 900<br/>cronSchedule: required]
+    D --> F[Job Config from parameters<br/>startFileId: required<br/>endFileId: required<br/>No cron schedule]
+    
+    E --> G[JobSchedulerService.executeScheduledBatchJob]
+    F --> H[JobSchedulerService.executeRangeBasedJob]
+    
+    G --> I[BatchProcessor.processByFileRange]
+    H --> I
+    
+    I --> J[Create RefinementJob in DB<br/>Status: PENDING → RUNNING]
+    
+    J --> K[Generate File IDs List<br/>Descending order: startFileId → endFileId]
+    
+    K --> L[Create ProcessingQueue entries<br/>for all file IDs]
+    
+    L --> M[Create BatchStatistics record]
+    
+    M --> N[Process files in batches<br/>parallel processing]
+    
+    N --> O{For each file}
+    
+    O --> P[Check file permissions/EEK]
+    P --> Q{Has EEK?}
+    Q -->|No| R[Log SKIPPED<br/>No EEK or file not exist]
+    Q -->|Yes| S[Check if already refined]
+    
+    S --> T{Already refined?}
+    T -->|Yes| U[Log ALREADY_REFINED]
+    T -->|No| V[Decrypt EEK]
+    
+    V --> W[Call Refinement API]
+    W --> X{API Success?}
+    X -->|Yes| Y[Log SUCCESS<br/>Store IPFS hash, gas, tx hash]
+    X -->|No| Z[Log FAILED<br/>Store error details]
+    
+    R --> AA[Update ProcessingQueue status]
+    U --> AA
+    Y --> AA
+    Z --> AA
+    
+    AA --> BB[Update FileProcessingLog]
+    BB --> CC[Aggregate BatchStatistics]
+    
+    CC --> DD[Complete Job<br/>Status: COMPLETED/FAILED]
+    
+    DD --> EE[Return ProcessingResult<br/>Total, success, failed counts]
+    
+    style C fill:#e1f5fe
+    style D fill:#f3e5f5
+    style I fill:#fff3e0
+    style N fill:#e8f5e8
+```
+
+### 1. JobType.SCHEDULED_BATCH (Automated Scheduled Processing)
+
+**Characteristics:**
+- **Trigger**: Automatic execution based on cron schedule
+- **Configuration**: Retrieved from `job.metadata` with fallback to defaults
+- **Scheduling**: Requires `cronSchedule` field (e.g., `"0 2 * * *"` for daily at 2 AM)
+- **Use Case**: Recurring batch processing, daily/weekly automated jobs
+
+**Data Flow:**
+
+1. **Job Creation & Scheduling**
+   ```typescript
+   // Example: Daily batch processing at 2 AM
+   {
+     jobName: 'daily-batch-refinement',
+     jobType: 'SCHEDULED_BATCH',
+     cronSchedule: '0 2 * * *',
+     metadata: {
+       startFileId: 1000,
+       endFileId: 900,
+       description: 'Daily automated processing'
+     }
+   }
+   ```
+
+2. **Execution Trigger**
+   - Cron scheduler automatically triggers job at scheduled time
+   - `JobSchedulerService.executeScheduledBatchJob()` is called
+   - Configuration loaded from `job.metadata` with intelligent defaults
+
+3. **Processing Pipeline**
+   - Calls `BatchProcessor.processByFileRange()` with resolved configuration
+   - Follows shared processing logic (see below)
+
+### 2. JobType.RANGE_BASED (Manual Range Processing)
+
+**Characteristics:**
+- **Trigger**: Manual execution or API call
+- **Configuration**: `startFileId` and `endFileId` are required parameters
+- **Scheduling**: No cron schedule needed
+- **Use Case**: One-time processing of specific file ranges
+
+**Data Flow:**
+
+1. **Job Creation**
+   ```typescript
+   // Example: Process files 1000-900
+   {
+     jobName: 'manual-range-1000-900',
+     jobType: 'RANGE_BASED',
+     startFileId: 1000,
+     endFileId: 900,
+     batchSize: 10,
+     priority: 8
+   }
+   ```
+
+2. **Execution Trigger**
+   - Immediate execution after creation or manual trigger
+   - `JobSchedulerService.executeRangeBasedJob()` is called
+   - Validates required `startFileId` and `endFileId` parameters
+
+3. **Processing Pipeline**
+   - Calls `BatchProcessor.processByFileRange()` with job parameters
+   - Follows shared processing logic (see below)
+
+### 3. Shared Processing Logic (BatchProcessor)
+
+Both job types converge into the same processing pipeline:
+
+#### Phase 1: Job Setup & Database Preparation
+```typescript
+// 1. Create RefinementJob record
+const job = await refinementJobService.createJob({
+  jobName: config.jobName,
+  jobType: JobType.RANGE_BASED, // or SCHEDULED_BATCH
+  startFileId: config.startFileId,
+  endFileId: config.endFileId,
+  status: 'PENDING'
+});
+
+// 2. Start the job (PENDING → RUNNING)
+await refinementJobService.startJob(job.id);
+```
+
+#### Phase 2: File ID Generation & Queue Setup
+```typescript
+// 3. Generate file IDs in descending order
+const fileIds: number[] = [];
+for (let id = startFileId; id >= endFileId; id--) {
+  fileIds.push(id);
+}
+
+// 4. Create processing queue entries
+await fileProcessingService.createQueueEntries(job.id, fileIds, priority);
+
+// 5. Initialize batch statistics
+await batchStatisticsService.createBatchStats({
+  jobId: job.id,
+  totalFiles: fileIds.length
+});
+```
+
+#### Phase 3: Batch Processing Loop
+```typescript
+// 6. Process files in batches with parallel execution
+for (let i = 0; i < fileIds.length; i += batchSize) {
+  const batchFileIds = fileIds.slice(i, i + batchSize);
+  
+  const batchResults = await Promise.allSettled(
+    batchFileIds.map(fileId => this.processFile(job.id, fileId))
+  );
+  
+  // Count and log results
+  // Update progress statistics
+}
+```
+
+#### Phase 4: Individual File Processing Pipeline
+
+For each file, the system follows this detailed workflow:
+
+1. **Permission Check**
+   ```typescript
+   const encryptedEEK = await getFilePermissions(fileId);
+   if (!encryptedEEK) return 'SKIPPED'; // No EEK found
+   ```
+
+2. **Refinement Status Check**
+   ```typescript
+   const isAlreadyRefined = await checkFileRefinement(fileId);
+   if (isAlreadyRefined) return 'ALREADY_REFINED';
+   ```
+
+3. **EEK Decryption**
+   ```typescript
+   const dataEncryptionKey = await decryptEEK(encryptedEEK, fileId);
+   ```
+
+4. **Refinement API Call**
+   ```typescript
+   const result = await refineFile(fileId, dataEncryptionKey);
+   // Returns: IPFS hash, transaction hash, gas used
+   ```
+
+5. **Result Logging**
+   ```typescript
+   await fileProcessingService.logSuccess({
+     jobId, fileId,
+     ipfsHash: result.ipfsHash,
+     gasUsed: result.gasUsed,
+     transactionHash: result.transactionHash
+   });
+   ```
+
+#### Phase 5: Aggregation & Completion
+```typescript
+// 7. Aggregate final statistics from individual file logs
+await batchStatisticsService.aggregateFromLogs(job.id);
+
+// 8. Complete the job (RUNNING → COMPLETED/FAILED)
+await refinementJobService.completeJob(job.id, success);
+
+// 9. Return comprehensive results
+return {
+  jobId: job.id,
+  totalFiles: fileIds.length,
+  successfulFiles: successCount,
+  failedFiles: failedCount,
+  alreadyRefinedFiles: alreadyRefinedCount,
+  skippedFiles: skippedCount,
+  processingTimeMs: totalTime
+};
+```
+
+### 4. Database Tables in the Flow
+
+The data flow involves these key database tables:
+
+1. **`refinement_jobs`**: Job metadata and status tracking
+2. **`processing_queue`**: File processing queue with priority management
+3. **`file_processing_logs`**: Detailed logs for each file processed
+4. **`batch_statistics`**: Aggregated statistics and performance metrics
+5. **`system_config`**: Dynamic configuration (batch size, priorities, etc.)
+
+### 5. Error Handling & Retry Mechanisms
+
+Both job types include comprehensive error handling:
+
+- **File-level retries**: Individual files can be retried with exponential backoff
+- **Job-level retries**: Entire jobs can be retried if they fail
+- **Partial completion**: Jobs can complete successfully even if some files fail
+- **Detailed error logging**: All errors are captured with context and stack traces
+- **Queue management**: Failed files are marked for retry or manual intervention
+
+### 6. Monitoring & Observability
+
+The system provides real-time monitoring for both job types:
+
+- **Real-time progress**: Track processing progress via WebSocket or polling
+- **Performance metrics**: Processing time, throughput, error rates
+- **Resource usage**: Memory, CPU, database connection utilization
+- **Business metrics**: Success rates, file refinement statistics
+- **Health checks**: Automated health monitoring and alerting
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
