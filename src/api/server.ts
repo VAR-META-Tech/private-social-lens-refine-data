@@ -46,10 +46,9 @@ export class ApiServer {
 
     // CORS configuration
     this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://localhost:3001'],
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true
+      origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
     }));
 
     // Compression and parsing
@@ -161,10 +160,6 @@ export class ApiServer {
           {
             url: `http://localhost:${this.port}`,
             description: 'Development server'
-          },
-          {
-            url: 'https://api.batchrefinement.com',
-            description: 'Production server'
           }
         ],
         components: {

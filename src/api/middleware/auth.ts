@@ -161,15 +161,15 @@ export function requirePermission(requiredPermission: string) {
  */
 function validateApiKey(apiKey: string): {
   isValid: boolean;
-  role: string;
-  permissions: string[];
+  role?: string;
+  permissions?: string[];
 } {
   // Check for admin API key
   if (apiKey === process.env.ADMIN_API_KEY && process.env.ADMIN_API_KEY) {
     return {
       isValid: true,
       role: 'admin',
-      permissions: ['read', 'write']
+      permissions: ['read', 'write', 'delete']
     };
   }
 
@@ -177,25 +177,14 @@ function validateApiKey(apiKey: string): {
   if (apiKey === process.env.API_KEY && process.env.API_KEY) {
     return {
       isValid: true,
-      role: 'api',
-      permissions: ['read', 'write']
-    };
-  }
-
-  // Check for demo API key (development only)
-  if (apiKey === 'demo-api-key-for-development') {
-    return {
-      isValid: true,
-      role: 'api',
+      role: 'user',
       permissions: ['read', 'write']
     };
   }
 
   // Invalid API key
   return {
-    isValid: false,
-    role: '',
-    permissions: []
+    isValid: false
   };
 }
 
@@ -203,7 +192,10 @@ function validateApiKey(apiKey: string): {
  * Verify JWT token
  */
 function verifyJwtToken(token: string): any {
-  const secret = process.env.JWT_SECRET || 'default-secret-change-in-production';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
   return jwt.verify(token, secret);
 }
 
@@ -211,6 +203,9 @@ function verifyJwtToken(token: string): any {
  * Generate JWT token
  */
 export function generateJwtToken(payload: any, expiresIn: string = '24h'): string {
-  const secret = process.env.JWT_SECRET || 'default-secret-change-in-production';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
   return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
 }

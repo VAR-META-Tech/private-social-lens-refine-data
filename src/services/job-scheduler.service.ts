@@ -529,7 +529,6 @@ export class JobSchedulerService {
    */
   private async executeManualJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
-z
     console.log(`👤 Executing manual job: ${job.jobName}`);
 
     // Manual jobs can be any type, use metadata to determine execution

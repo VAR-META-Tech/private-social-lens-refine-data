@@ -63,16 +63,6 @@ export const CONFIG = {
     return 10 * 1024 * 1024; // 10MB
   },
 
-  get pinataApiKey() {
-    console.warn('⚠️ CONFIG.pinataApiKey is deprecated. Use HybridConfigService instead.');
-    return getEnvironmentConfig().pinataApiKey;
-  },
-
-  get pinataApiSecret() {
-    console.warn('⚠️ CONFIG.pinataApiSecret is deprecated. Use HybridConfigService instead.');
-    return getEnvironmentConfig().pinataApiSecret;
-  },
-
   get pinataApiJwt() {
     console.warn('⚠️ CONFIG.pinataApiJwt is deprecated. Use HybridConfigService instead.');
     return getEnvironmentConfig().pinataApiJwt;
