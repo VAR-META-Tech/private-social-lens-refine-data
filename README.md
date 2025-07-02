@@ -663,7 +663,7 @@ PINATA_API_JWT=your_pinata_jwt_token                 # Optional: IPFS via Pinata
 #### Processing Defaults (Override Database Config)
 ```bash
 BATCH_SIZE=10                                        # Default batch size for processing
-MAX_FILE_ID=1000                                     # Maximum file ID to process
+
 REFINER_ID=7                                         # Default refiner ID
 VERBOSE=false                                        # Enable verbose logging
 ```

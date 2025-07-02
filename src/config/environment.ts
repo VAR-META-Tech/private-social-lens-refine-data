@@ -38,7 +38,6 @@ export interface EnvironmentConfig {
   logDir: string;
   
   // Processing defaults (can be overridden by database config)
-  defaultMaxFileId: number;
   defaultBatchSize: number;
   defaultRefinerId: number;
   defaultVerbose: boolean;
@@ -78,7 +77,6 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
     logDir: process.env.LOG_DIR || path.join(process.cwd(), 'logs'),
     
     // Processing defaults
-    defaultMaxFileId: parseInt(process.env.MAX_FILE_ID || '1000', 10),
     defaultBatchSize: parseInt(process.env.BATCH_SIZE || '10', 10),
     defaultRefinerId: parseInt(process.env.REFINER_ID || '7', 10),
     defaultVerbose: process.env.VERBOSE === 'true'
@@ -117,10 +115,7 @@ export function validateEnvironmentConfig(config: EnvironmentConfig): { valid: b
     errors.push('BATCH_SIZE must be between 1 and 1000');
   }
   
-  // Validate max file ID
-  if (config.defaultMaxFileId < 1) {
-    errors.push('MAX_FILE_ID must be greater than 0');
-  }
+
   
   // Validate refiner ID
   if (config.defaultRefinerId < 0) {
@@ -181,7 +176,7 @@ export function displayEnvironmentSummary(config: EnvironmentConfig): void {
   console.log(`  • Log Level: ${config.logLevel}`);
   console.log(`  • Log Directory: ${config.logDir}`);
   console.log(`  • Default Batch Size: ${config.defaultBatchSize}`);
-  console.log(`  • Default Max File ID: ${config.defaultMaxFileId}`);
+
   console.log(`  • Default Refiner ID: ${config.defaultRefinerId}`);
   console.log(`  • IPFS Configured: ${config.pinataApiJwt ? 'Yes' : 'No'}`);
 } 

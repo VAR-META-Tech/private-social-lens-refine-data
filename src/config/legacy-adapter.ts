@@ -26,10 +26,7 @@ export const CONFIG = {
     return getEnvironmentConfig().dlpAddress;
   },
 
-  get maxFileId() {
-    console.warn('⚠️ CONFIG.maxFileId is deprecated. Use HybridConfigService instead.');
-    return getEnvironmentConfig().defaultMaxFileId;
-  },
+
 
   get batchSize() {
     console.warn('⚠️ CONFIG.batchSize is deprecated. Use HybridConfigService instead.');
