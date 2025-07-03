@@ -5,6 +5,7 @@
 
 import dotenv from 'dotenv';
 import path from 'path';
+import { logger } from '../services/logging.service';
 
 // Load environment variables
 dotenv.config();
@@ -161,18 +162,18 @@ export function getEnvironmentConfig(): EnvironmentConfig {
  * Display environment configuration summary (without sensitive data)
  */
 export function displayEnvironmentSummary(config: EnvironmentConfig): void {
-  console.log('🔧 Environment Configuration:');
-  console.log(`  • Node Environment: ${config.nodeEnv}`);
-  console.log(`  • Port: ${config.port}`);
-  console.log(`  • Database: ${config.databaseUrl.includes('localhost') ? 'Local' : 'Remote'}`);
-  console.log(`  • RPC URL: ${config.rpcUrl}`);
-  console.log(`  • DLP Address: ${config.dlpAddress}`);
-  console.log(`  • Data Registry: ${config.dataRegistryAddress}`);
-  console.log(`  • Refinement Service: ${config.refinementServiceApiBaseUrl}`);
-  console.log(`  • Log Level: ${config.logLevel}`);
-  console.log(`  • Log Directory: ${config.logDir}`);
-  console.log(`  • Default Batch Size: ${config.defaultBatchSize}`);
-
-  console.log(`  • Default Refiner ID: ${config.defaultRefinerId}`);
-  console.log(`  • IPFS Configured: ${config.pinataApiJwt ? 'Yes' : 'No'}`);
+  // Display configuration summary
+  logger.info('🔧 Environment Configuration:');
+  logger.info(`  • Node Environment: ${config.nodeEnv}`);
+  logger.info(`  • Port: ${config.port}`);
+  logger.info(`  • Database: ${config.databaseUrl.includes('localhost') ? 'Local' : 'Remote'}`);
+  logger.info(`  • RPC URL: ${config.rpcUrl}`);
+  logger.info(`  • DLP Address: ${config.dlpAddress}`);
+  logger.info(`  • Data Registry: ${config.dataRegistryAddress}`);
+  logger.info(`  • Refinement Service: ${config.refinementServiceApiBaseUrl}`);
+  logger.info(`  • Log Level: ${config.logLevel}`);
+  logger.info(`  • Log Directory: ${config.logDir}`);
+  logger.info(`  • Default Batch Size: ${config.defaultBatchSize}`);
+  logger.info(`  • Default Refiner ID: ${config.defaultRefinerId}`);
+  logger.info(`  • IPFS Configured: ${config.pinataApiJwt ? 'Yes' : 'No'}`);
 } 

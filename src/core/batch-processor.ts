@@ -8,6 +8,8 @@ import { container } from './container';
 import { JobType } from '@/generated/prisma';
 import { getFilePermissions, decryptEEK, checkFileRefinement } from '@/services';
 import { refineFile } from '@/services';
+import { getEnvironmentConfig } from '@/config';
+import { logger } from '../services/logging.service';
 
 export interface BatchProcessorConfig {
   startFileId?: number;
@@ -43,7 +45,7 @@ export class BatchProcessor {
       throw new Error('startFileId and endFileId are required for file range processing');
     }
 
-    console.log(`🔄 Starting batch processing: Files ${config.startFileId} to ${config.endFileId}`);
+    logger.info(`🔄 Starting batch processing: Files ${config.startFileId} to ${config.endFileId}`);
 
          // Get services
      const { refinementJobService, fileProcessingService, batchStatisticsService, hybridConfigService } = container.getServices();
@@ -132,7 +134,7 @@ export class BatchProcessor {
           }
         }
 
-        console.log(`📊 Batch ${Math.floor(i / batchSize) + 1} completed: ${batchFileIds.length} files processed`);
+        logger.info(`📊 Batch ${Math.floor(i / batchSize) + 1} completed: ${batchFileIds.length} files processed`);
       }
 
       // Aggregate final statistics
@@ -143,8 +145,8 @@ export class BatchProcessor {
 
       const processingTimeMs = Date.now() - startTime;
 
-      console.log(`✅ Batch processing completed successfully in ${processingTimeMs}ms`);
-      console.log(`📈 Results: ${successCount} success, ${failedCount} failed, ${alreadyRefinedCount} already refined, ${skippedCount} skipped`);
+      logger.info(`✅ Batch processing completed successfully in ${processingTimeMs}ms`);
+      logger.info(`📈 Results: ${successCount} success, ${failedCount} failed, ${alreadyRefinedCount} already refined, ${skippedCount} skipped`);
 
       return {
         jobId: job.id,
@@ -158,8 +160,8 @@ export class BatchProcessor {
         success: true
       };
 
-    } catch (error) {
-      console.error(`❌ Batch processing failed:`, error);
+          } catch (error) {
+        logger.error(`❌ Batch processing failed:`, error instanceof Error ? error : new Error(String(error)));
 
       // Mark job as failed
       await refinementJobService.setJobError(job.id, error instanceof Error ? error.message : 'Unknown error');
@@ -179,7 +181,7 @@ export class BatchProcessor {
       throw new Error('startIndex and endIndex are required for index range processing');
     }
 
-    console.log(`🔄 Starting batch processing: Indices ${config.startIndex} to ${config.endIndex}`);
+    logger.info(`🔄 Starting batch processing: Indices ${config.startIndex} to ${config.endIndex}`);
 
     // This would need blockchain integration to get file IDs from indices
     // For now, we'll throw an error to indicate this needs implementation
@@ -202,7 +204,7 @@ export class BatchProcessor {
       // Start processing log
       await fileProcessingService.startProcessing(jobId, fileId);
 
-      console.log(`🔍 Checking file ${fileId}...`);
+      logger.info(`🔍 Checking file ${fileId}...`);
 
       // Step 1: Check if the file has an EEK
       const encryptedEEK = await getFilePermissions(fileId);
@@ -227,7 +229,7 @@ export class BatchProcessor {
         };
       }
 
-      console.log(`🔑 Found file ${fileId} with EEK - needs refinement`);
+      logger.info(`🔑 Found file ${fileId} with EEK - needs refinement`);
 
       // Step 3: Decrypt the EEK
       const dataEncryptionKey = await decryptEEK(encryptedEEK, fileId);
@@ -247,7 +249,7 @@ export class BatchProcessor {
         };
       }
 
-      console.log(`🔓 Decrypted EEK for file ${fileId}: ${dataEncryptionKey}`);
+      logger.info(`🔓 Decrypted EEK for file ${fileId}: ${dataEncryptionKey}`);
 
       // Step 4: Refine the file
       const refinementResult = await refineFile(fileId, dataEncryptionKey);

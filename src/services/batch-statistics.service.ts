@@ -5,6 +5,7 @@
 
 import { prisma } from '@/database/client';
 import { BatchStatistic, ProcessingStatus } from '@/generated/prisma';
+import { logger } from './logging.service';
 
 export interface BatchStatsParams {
   jobId: string;
@@ -44,7 +45,7 @@ export class BatchStatisticsService {
       }
     });
 
-    console.log(`📊 Created batch statistics for job ${params.jobId}`);
+    logger.info(`📊 Created batch statistics for job ${params.jobId}`);
     return stats;
   }
 
@@ -57,7 +58,7 @@ export class BatchStatisticsService {
     });
 
     if (!stats) {
-      console.warn(`No batch statistics found for job ${jobId}`);
+      logger.warn(`No batch statistics found for job ${jobId}`);
       return null;
     }
 
@@ -84,7 +85,7 @@ export class BatchStatisticsService {
     });
 
     if (logs.length === 0) {
-      console.warn(`No processing logs found for job ${jobId}`);
+      logger.warn(`No processing logs found for job ${jobId}`);
       return null;
     }
 
@@ -147,7 +148,7 @@ export class BatchStatisticsService {
       batchEndTime: new Date()
     });
 
-    console.log(`📈 Aggregated statistics for job ${jobId}:`, {
+    logger.info(`📈 Aggregated statistics for job ${jobId}:`, {
       processed: stats.processedCount,
       success: stats.successCount,
       failed: stats.failedCount,

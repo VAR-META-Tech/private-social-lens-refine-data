@@ -8,6 +8,7 @@ import { BatchProcessor } from '@/core';
 import { connectDatabase } from '@/database/client';
 import { initializeContract } from '@/services';
 import { getEnvironmentConfig, displayEnvironmentSummary } from '@/config';
+import { logger } from '@/services/logging.service';
 
 export interface CliArguments {
   startId?: number;
@@ -29,7 +30,7 @@ export class CliApplication {
    * Initialize the application
    */
   async initialize(): Promise<void> {
-    console.log('🚀 Initializing Batch Refinement Service...');
+    logger.info('🚀 Initializing Batch Refinement Service...');
 
     try {
       // Display environment configuration
@@ -50,13 +51,13 @@ export class CliApplication {
       const configValidation = await hybridConfigService.validateConfig();
 
       if (!configValidation.valid) {
-        console.warn('⚠️ Configuration validation warnings:');
-        configValidation.errors.forEach(error => console.warn(`  • ${error}`));
+        logger.warn('⚠️ Configuration validation warnings:');
+        configValidation.errors.forEach(error => logger.warn(`  • ${error}`));
       }
 
-      console.log('✅ Application initialized successfully');
+      logger.info('✅ Application initialized successfully');
     } catch (error) {
-      console.error('❌ Application initialization failed:', error);
+      logger.error('❌ Application initialization failed:', error as Error);
       throw error;
     }
   }
@@ -66,7 +67,7 @@ export class CliApplication {
    */
   async runBatch(args: CliArguments): Promise<void> {
     try {
-      console.log('📋 Starting batch refinement with arguments:', args);
+      logger.info('📋 Starting batch refinement with arguments:', args);
 
       // Validate arguments
       if (!args.startId || !args.endId) {
@@ -94,7 +95,7 @@ export class CliApplication {
       this.displayResults(result);
 
     } catch (error) {
-      console.error('❌ Batch processing failed:', error);
+      logger.error('❌ Batch processing failed:', error as Error);
       throw error;
     }
   }
@@ -103,28 +104,28 @@ export class CliApplication {
    * Display processing results
    */
   private displayResults(result: any): void {
-    console.log('\n🎉 ===== BATCH PROCESSING COMPLETED =====');
-    console.log(`Job ID: ${result.jobId}`);
-    console.log(`Total files: ${result.totalFiles}`);
-    console.log(`Processed files: ${result.processedFiles}`);
-    console.log(`✅ Successful: ${result.successfulFiles}`);
-    console.log(`❌ Failed: ${result.failedFiles}`);
-    console.log(`⏭️ Already refined: ${result.alreadyRefinedFiles}`);
-    console.log(`⏹️ Skipped: ${result.skippedFiles}`);
-    console.log(`⏱️ Processing time: ${result.processingTimeMs}ms`);
+    logger.info('\n🎉 ===== BATCH PROCESSING COMPLETED =====');
+    logger.info(`Job ID: ${result.jobId}`);
+    logger.info(`Total files: ${result.totalFiles}`);
+    logger.info(`Processed files: ${result.processedFiles}`);
+    logger.info(`✅ Successful: ${result.successfulFiles}`);
+    logger.info(`❌ Failed: ${result.failedFiles}`);
+    logger.info(`⏭️ Already refined: ${result.alreadyRefinedFiles}`);
+    logger.info(`⏹️ Skipped: ${result.skippedFiles}`);
+    logger.info(`⏱️ Processing time: ${result.processingTimeMs}ms`);
 
     const successRate = result.processedFiles > 0
       ? Math.round((result.successfulFiles / result.processedFiles) * 100 * 100) / 100
       : 0;
-    console.log(`📊 Success rate: ${successRate}%`);
-    console.log('==========================================\n');
+    logger.info(`📊 Success rate: ${successRate}%`);
+    logger.info('==========================================\n');
   }
 
   /**
    * Show help message
    */
   showHelp(): void {
-    console.log(`
+    logger.info(`
 🔧 Batch Refinement Service - CLI Interface
 
 USAGE:
@@ -202,7 +203,7 @@ For more information, see the documentation.
           parsed.showHelp = true;
           break;
         default:
-          console.warn(`Unknown argument: ${args[i]}`);
+          logger.warn(`Unknown argument: ${args[i]}`);
       }
     }
 
@@ -245,40 +246,40 @@ For more information, see the documentation.
    * Display validation errors
    */
   displayErrors(errors: string[]): void {
-    console.error('❌ Invalid arguments:');
-    errors.forEach(error => console.error(`  • ${error}`));
-    console.error('\nUse --help for usage information.');
+    logger.error('❌ Invalid arguments:');
+    errors.forEach(error => logger.error(`  • ${error}`));
+    logger.error('\nUse --help for usage information.');
   }
 
   /**
    * Run health check
    */
   async healthCheck(): Promise<void> {
-    console.log('🔍 Running health check...');
+    logger.info('🔍 Running health check...');
 
     try {
       // Check container
       const containerHealth = await container.healthCheck();
-      console.log('Container status:', containerHealth.status);
-      console.log('Services:', containerHealth.services);
+      logger.info(`Container status: ${containerHealth.status}`);
+      logger.info(`Services: ${containerHealth.services}`);
 
       // Check database
       const { healthCheck } = await import('../database/client');
       const dbHealth = await healthCheck();
-      console.log('Database status:', dbHealth.status);
+      logger.info(`Database status: ${dbHealth.status}`);
 
       // Get some basic stats
       const { batchStatisticsService } = container.getServices();
       const metrics = await batchStatisticsService.getPerformanceMetrics();
-      console.log('Performance metrics:', {
+      logger.info(`Performance metrics: ${JSON.stringify({
         totalJobs: metrics.totalJobs,
         successRate: `${metrics.successRate}%`,
         totalFilesProcessed: metrics.totalFilesProcessed
-      });
+      })}`);
 
-      console.log('✅ Health check completed');
+      logger.info('✅ Health check completed');
     } catch (error) {
-      console.error('❌ Health check failed:', error);
+      logger.error('❌ Health check failed:', error as Error);
       throw error;
     }
   }

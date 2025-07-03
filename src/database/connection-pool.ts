@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@/generated/prisma';
+import { logger } from '@/services';
 
 interface ConnectionPoolConfig {
   maxConnections: number;
@@ -73,14 +74,14 @@ class PrismaConnectionPool {
 
       // Test connection
       await this.prisma.$connect();
-      console.log('✅ Prisma connection pool initialized successfully');
+      logger.info('✅ Prisma connection pool initialized successfully');
 
       // Start health check monitoring
       this.startHealthCheck();
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('❌ Failed to initialize Prisma connection pool:', error);
+      logger.error('❌ Failed to initialize Prisma connection pool:', error as Error);
       throw error;
     }
   }
@@ -152,7 +153,7 @@ class PrismaConnectionPool {
         lastChecked: new Date(),
       };
     } catch (error) {
-      console.error('Health check failed:', error);
+      logger.error('Health check failed:', error as Error);
       this.stats.lastChecked = new Date();
     }
   }
@@ -235,7 +236,7 @@ class PrismaConnectionPool {
     }
 
     this.isInitialized = false;
-    console.log('✅ Prisma connection pool closed successfully');
+    logger.info('✅ Prisma connection pool closed successfully');
   }
 
   /**

@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient, Prisma } from '@/generated/prisma';
+import { logger } from '../services/logging.service';
 
 // Global variable for Prisma client instance
 declare global {
@@ -62,9 +63,9 @@ export const prisma = getPrismaClient();
 export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
-    console.log('✅ Database connected successfully');
+    logger.info('📦 Database connection established');
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    logger.error('❌ Database connection failed:', error as Error);
     throw error;
   }
 }
@@ -75,9 +76,9 @@ export async function connectDatabase(): Promise<void> {
 export async function disconnectDatabase(): Promise<void> {
   try {
     await prisma.$disconnect();
-    console.log('✅ Database disconnected successfully');
+    logger.info('✅ Database disconnected successfully');
   } catch (error) {
-    console.error('❌ Database disconnection failed:', error);
+    logger.error('❌ Database disconnection failed:', error as Error);
     throw error;
   }
 }
@@ -90,7 +91,7 @@ export async function testConnection(): Promise<boolean> {
     await prisma.$queryRaw`SELECT 1 as test`;
     return true;
   } catch (error) {
-    console.error('❌ Database connection test failed:', error);
+    logger.error('❌ Database connection test failed:', error as Error);
     return false;
   }
 }
@@ -145,13 +146,13 @@ export async function healthCheck() {
 
 // Graceful shutdown handling
 process.on('SIGINT', async () => {
-  console.log('🛑 Received SIGINT, closing database connections...');
+  logger.info('🛑 Received SIGINT, closing database connections...');
   await disconnectDatabase();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('🛑 Received SIGTERM, closing database connections...');
+  logger.info('🛑 Received SIGTERM, closing database connections...');
   await disconnectDatabase();
   process.exit(0);
 });

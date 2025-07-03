@@ -5,7 +5,7 @@
  * Database stores runtime/business configuration that can be modified
  */
 
-import { SystemConfigService } from '@/services';
+import { logger, SystemConfigService } from '@/services';
 import { getEnvironmentConfig, EnvironmentConfig } from './environment';
 
 export interface HybridConfig {
@@ -233,15 +233,15 @@ export class HybridConfigService {
   async hotReload(): Promise<HybridConfig> {
     this.invalidateCache();
     const config = await this.getConfig(true);
-    console.log('🔄 Configuration hot-reloaded');
+    logger.info('🔄 Configuration hot-reloaded');
     return config;
-  }
+  } 
 
   /**
    * Initialize configuration with environment overrides
    */
   async initializeWithOverrides(): Promise<void> {
-    console.log('🔧 Initializing hybrid configuration...');
+    logger.info('🔧 Initializing hybrid configuration...');
 
     // Initialize default database config
     await this.systemConfigService.initializeDefaults();
@@ -265,6 +265,6 @@ export class HybridConfigService {
       'Logging level (from environment)'
     );
 
-    console.log('✅ Hybrid configuration initialized');
+    logger.info('✅ Hybrid configuration initialized');
   }
 }

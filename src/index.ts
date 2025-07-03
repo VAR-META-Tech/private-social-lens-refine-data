@@ -5,6 +5,7 @@
 
 import {CliApplication} from '@/application';
 import {validateConfig} from "@/config";
+import { logger } from './services/logging.service';
 
 /**
  * Main function
@@ -38,7 +39,7 @@ async function main(): Promise<void> {
     // Run batch processing
     await app.runBatch(args);
 
-    console.log('🎉 Batch refinement completed successfully');
+    logger.info('🎉 Batch refinement completed successfully');
     process.exit(0);
 
   } catch (error) {

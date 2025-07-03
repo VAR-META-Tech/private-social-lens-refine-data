@@ -10,6 +10,7 @@ import {
   ProcessingQueue,
   QueueStatus
 } from '@/generated/prisma';
+import { logger, LogContext } from './logging.service';
 
 export interface ProcessFileParams {
   jobId: string;
@@ -48,7 +49,13 @@ export class FileProcessingService {
       }
     });
 
-    console.log(`🔄 Started processing file ${fileId} for job ${jobId}`);
+    const logContext: LogContext = {
+      jobId,
+      fileId,
+      operation: 'file-processing'
+    };
+
+    logger.info('Started processing file', logContext, 'FileProcessor');
     return log;
   }
 
@@ -88,7 +95,14 @@ export class FileProcessingService {
       }
     });
 
-    console.log(`✅ Successfully processed file ${params.fileId}`);
+    const logContext: LogContext = {
+      jobId: params.jobId,
+      fileId: params.fileId,
+      duration: params.processingTimeMs,
+      operation: 'file-processing'
+    };
+
+    logger.info('Successfully processed file', logContext, 'FileProcessor');
     return log;
   }
 
@@ -125,7 +139,15 @@ export class FileProcessingService {
       }
     });
 
-    console.error(`❌ Failed to process file ${params.fileId}: ${params.errorMessage}`);
+    const logContext: LogContext = {
+      jobId: params.jobId,
+      fileId: params.fileId,
+      duration: params.processingTimeMs,
+      errorCode: 'PROCESSING_FAILED',
+      operation: 'file-processing'
+    };
+
+    logger.error('Failed to process file', new Error(params.errorMessage), logContext, 'FileProcessor');
     return log;
   }
 
@@ -144,6 +166,12 @@ export class FileProcessingService {
       }
     });
 
+    const logContext: LogContext = {
+      jobId,
+      fileId,
+      operation: 'file-processing'
+    };
+
     if (existingLog) {
       // Update existing log
       const newStatus = reason.includes('already been refined') ? ProcessingStatus.ALREADY_REFINED : ProcessingStatus.SKIPPED;
@@ -155,7 +183,7 @@ export class FileProcessingService {
           processedAt: new Date()
         }
       });
-      console.log(`⏭️ Skipped file ${fileId}: ${reason}`);
+      logger.info(`Skipped file: ${reason}`, logContext, 'FileProcessor');
       return log;
     } else {
       // Create new log
@@ -168,7 +196,7 @@ export class FileProcessingService {
           processedAt: new Date()
         }
       });
-      console.log(`⏭️ Skipped file ${fileId}: ${reason}`);
+      logger.info(`Skipped file: ${reason}`, logContext, 'FileProcessor');
       return log;
     }
   }
@@ -243,7 +271,13 @@ export class FileProcessingService {
       skipDuplicates: true
     });
 
-    console.log(`📝 Created ${queueEntries.length} queue entries for job ${jobId}`);
+    const logContext: LogContext = {
+      jobId,
+      metadata: { queueEntries: queueEntries.length },
+      operation: 'queue-management'
+    };
+
+    logger.info(`Created ${queueEntries.length} queue entries for job`, logContext, 'FileProcessor');
   }
 
   /**

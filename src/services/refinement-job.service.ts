@@ -9,6 +9,7 @@ import {
   JobStatus,
   JobType,
 } from '@/generated/prisma';
+import { logger } from './logging.service';
 
 export interface CreateJobParams {
   jobName: string;
@@ -53,7 +54,7 @@ export class RefinementJobService {
       }
     });
 
-    console.log(`✅ Created refinement job: ${job.jobName} (ID: ${job.id})`);
+    logger.info(`✅ Created refinement job: ${job.jobName} (ID: ${job.id})`);
     return job;
   }
 
@@ -69,7 +70,7 @@ export class RefinementJobService {
       }
     });
 
-    console.log(`🚀 Started job: ${job.jobName} (ID: ${job.id})`);
+    logger.info(`🚀 Started job: ${job.jobName} (ID: ${job.id})`);
     return job;
   }
 
@@ -87,7 +88,7 @@ export class RefinementJobService {
       }
     });
 
-    console.log(`✅ Completed job: ${job.jobName} (Status: ${status})`);
+    logger.info(`✅ Completed job: ${job.jobName} (Status: ${status})`);
     return job;
   }
 

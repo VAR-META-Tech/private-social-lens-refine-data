@@ -5,16 +5,17 @@
 
 import { PrismaClient, JobStatus, JobType } from "./generated/prisma";
 import * as bcrypt from 'bcrypt'
+import { logger } from './services/logging.service';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting database seeding...");
+  logger.info('🌱 Starting database seeding...');
 
   try {
     // Clear existing data in development
     if (process.env.NODE_ENV === "development") {
-      console.log("🧹 Clearing existing data...");
+      logger.info('🧹 Clearing existing data...');
       await prisma.refinementJob.deleteMany();
     }
 
@@ -37,15 +38,15 @@ async function main() {
           isActive: true
         }
       })
-      console.log('Created initial admin user')
+      logger.info('Created initial admin user')
     }
 
     // Print summary
     const summary = await getSeedingSummary();
-    console.log("\n📊 Seeding Summary:");
-    console.log(`  Refinement Jobs: ${summary.refinementJobs}`);
+    logger.info("\n📊 Seeding Summary:");
+    logger.info(`  Refinement Jobs: ${summary.refinementJobs}`);
   } catch (error) {
-    console.error("❌ Database seeding failed:", error);
+    logger.error("❌ Database seeding failed:", error as Error);
     throw error;
   }
 }
@@ -64,7 +65,7 @@ async function getSeedingSummary() {
 
 main()
   .catch((e) => {
-    console.error("❌ Seeding failed:", e);
+    logger.error("❌ Seeding failed:", e as Error);
     process.exit(1);
   })
   .finally(async () => {

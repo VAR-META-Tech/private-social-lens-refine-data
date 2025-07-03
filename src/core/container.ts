@@ -3,7 +3,7 @@
  * Manages service instances and their dependencies
  */
 
-import { ApiKeyService, RefinementJobService } from '@/services';
+import { ApiKeyService, logger, RefinementJobService } from '@/services';
 import { FileProcessingService } from '@/services';
 import { BatchStatisticsService } from '@/services';
 import { SystemConfigService } from '@/services';
@@ -13,7 +13,7 @@ import { HealthMonitoringService } from '@/services';
 import { HybridConfigService } from '@/config';
 import { BatchProcessor } from './batch-processor';
 import { prisma } from '@/database/client';
-import { UserService } from '@/services/user.service'
+import { UserService } from '@/services/user.service';
 
 export interface ServiceContainer {
   refinementJobService: RefinementJobService;
@@ -53,7 +53,7 @@ export class Container {
       return;
     }
 
-    console.log('🔧 Initializing dependency injection container...');
+    logger.info('🔧 Initializing dependency injection container...');
 
     // Initialize services in dependency order
     this.services.systemConfigService = new SystemConfigService();
@@ -79,7 +79,7 @@ export class Container {
     await this.services.jobSchedulerService.initialize();
 
     this.initialized = true;
-    console.log('✅ Dependency injection container initialized');
+    logger.info('✅ Dependency injection container initialized');
   }
 
   /**

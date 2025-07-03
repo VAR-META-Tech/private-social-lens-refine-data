@@ -12,6 +12,7 @@ import {
   RefinementJob,
   Prisma
 } from '@/generated/prisma';
+import { logger, LogContext } from './logging.service';
 
 export interface ScheduledJobConfig {
   jobName: string;
@@ -52,7 +53,7 @@ export class JobSchedulerService {
    * Initialize the scheduler and load existing scheduled jobs
    */
   async initialize(): Promise<void> {
-    console.log('🕐 Initializing Job Scheduler Service...');
+    logger.info('🕐 Initializing Job Scheduler Service...');
 
     try {
       // Load existing scheduled jobs from database
@@ -64,9 +65,9 @@ export class JobSchedulerService {
       // Schedule system maintenance jobs
       await this.scheduleSystemJobs();
 
-      console.log('✅ Job Scheduler Service initialized successfully');
+      logger.info('✅ Job Scheduler Service initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize Job Scheduler Service:', error);
+      logger.error('❌ Failed to initialize Job Scheduler Service:', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -90,7 +91,7 @@ export class JobSchedulerService {
       });
 
       if (existingJob) {
-        console.log(`⚠️ Scheduled job already exists: ${config.jobName}, skipping creation`);
+        logger.warn(`⚠️ Scheduled job already exists: ${config.jobName}, skipping creation`);
         return existingJob;
       }
 
@@ -126,15 +127,15 @@ export class JobSchedulerService {
         });
         
         await this.scheduleJob(scheduledJob);
-        console.log(`📅 Created and scheduled job: ${job.jobName} [${job.cronSchedule}] [SCHEDULED]`);
+        logger.info(`📅 Created and scheduled job: ${job.jobName} [${job.cronSchedule}] [SCHEDULED]`);
         return scheduledJob;
       }
 
-      console.log(`📅 Created job: ${job.jobName} [${job.cronSchedule}] [PENDING] (not scheduled)`);
+      logger.info(`📅 Created job: ${job.jobName} [${job.cronSchedule}] [PENDING] (not scheduled)`);
       return job;
 
     } catch (error) {
-      console.error(`❌ Failed to create scheduled job: ${config.jobName}`, error);
+      logger.error(`❌ Failed to create scheduled job: ${config.jobName}`, error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -144,14 +145,14 @@ export class JobSchedulerService {
    */
   async scheduleJob(job: RefinementJob): Promise<void> {
     if (!job.cronSchedule) {
-      console.warn(`⚠️ Job ${job.id} has no cron schedule, skipping`);
+      logger.warn(`⚠️ Job ${job.id} has no cron schedule, skipping`);
       return;
     }
 
     try {
       // Don't create duplicate scheduled tasks
       if (this.scheduledJobs.has(job.id)) {
-        console.log(`⚠️ Job ${job.jobName} is already scheduled, skipping`);
+        logger.warn(`⚠️ Job ${job.jobName} is already scheduled, skipping`);
         return;
       }
 
@@ -162,9 +163,9 @@ export class JobSchedulerService {
 
       this.scheduledJobs.set(job.id, task);
 
-      console.log(`⏰ Scheduled job ${job.jobName} with cron: ${job.cronSchedule} [SCHEDULED]`);
+      logger.info(`⏰ Scheduled job ${job.jobName} with cron: ${job.cronSchedule} [SCHEDULED]`);
     } catch (error) {
-      console.error(`❌ Failed to schedule job ${job.id}:`, error);
+      logger.error(`❌ Failed to schedule job ${job.id}:`, error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -174,19 +175,19 @@ export class JobSchedulerService {
    */
   async executeJob(jobId: string): Promise<void> {
     if (this.isShuttingDown) {
-      console.log(`🛑 Skipping job ${jobId} - scheduler is shutting down`);
+      logger.info(`🛑 Skipping job ${jobId} - scheduler is shutting down`);
       return;
     }
 
     // Check if already running
     if (this.runningJobs.has(jobId)) {
-      console.log(`⏳ Job ${jobId} is already running, skipping execution`);
+      logger.info(`⏳ Job ${jobId} is already running, skipping execution`);
       return;
     }
 
     // Check concurrent job limit
     if (this.runningJobs.size >= this.maxConcurrentJobs) {
-      console.log(`🚫 Max concurrent jobs (${this.maxConcurrentJobs}) reached, queuing job ${jobId}`);
+      logger.info(`🚫 Max concurrent jobs (${this.maxConcurrentJobs}) reached, queuing job ${jobId}`);
       await this.queueJob(jobId);
       return;
     }
@@ -198,14 +199,14 @@ export class JobSchedulerService {
       });
 
       if (!job) {
-        console.error(`❌ Job ${jobId} not found`);
+        logger.error(`❌ Job ${jobId} not found`);
         return;
       }
 
       // Check if job should be retried
       if (job.status === JobStatus.RETRYING) {
         if (job.nextRetryAt && new Date() < job.nextRetryAt) {
-          console.log(`⏸️ Job ${jobId} retry scheduled for ${job.nextRetryAt}`);
+          logger.info(`⏸️ Job ${jobId} retry scheduled for ${job.nextRetryAt}`);
           return;
         }
       }
@@ -220,7 +221,7 @@ export class JobSchedulerService {
       // Mark as running
       this.runningJobs.set(jobId, executionContext);
 
-      console.log(`🚀 Starting job execution: ${job.jobName} [${executionContext.executionId}]`);
+      logger.info(`🚀 Starting job execution: ${job.jobName} [${executionContext.executionId}]`);
 
       // Update job status to running
       await prisma.refinementJob.update({
@@ -235,7 +236,7 @@ export class JobSchedulerService {
       await this.executeJobByType(executionContext);
 
     } catch (error) {
-      console.error(`❌ Job execution failed for ${jobId}:`, error);
+      logger.error(`❌ Job execution failed for ${jobId}:`, error as Error);
       await this.handleJobFailure(jobId, error);
     } finally {
       // Remove from running jobs
@@ -293,13 +294,13 @@ export class JobSchedulerService {
   private async executeScheduledBatchJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
 
-    console.log(`📦 Executing scheduled batch job: ${job.jobName}`);
+    logger.info(`📦 Executing scheduled batch job: ${job.jobName}`);
 
     // Calculate range for this execution
     const { startFileId, endFileId } = await this.calculateNextRange(job);
     const batchSize = job.batchSize;
 
-    console.log(`🎯 Processing range: ${startFileId} to ${endFileId} (batch size: ${batchSize})`);
+    logger.info(`🎯 Processing range: ${startFileId} to ${endFileId} (batch size: ${batchSize})`);
 
     // Import and execute batch processor
     const { container } = await import('../core/container');
@@ -324,7 +325,7 @@ export class JobSchedulerService {
     // Update job metadata with last execution info
     await this.updateLastExecutionInfo(job, startFileId, endFileId, result);
 
-    console.log(`✅ Scheduled batch job completed: ${result.successfulFiles}/${result.totalFiles} files processed`);
+    logger.info(`✅ Scheduled batch job completed: ${result.successfulFiles}/${result.totalFiles} files processed`);
   }
 
   /**
@@ -401,7 +402,7 @@ export class JobSchedulerService {
       data: { metadata: updatedMetadata }
     });
 
-    console.log(`📝 Updated execution info: Run #${executionNumber}, Range: ${startFileId}-${endFileId}`);
+    logger.info(`📝 Updated execution info: Run #${executionNumber}, Range: ${startFileId}-${endFileId}`);
   }
 
   /**
@@ -410,7 +411,7 @@ export class JobSchedulerService {
   private async executeRangeBasedJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
 
-    console.log(`🎯 Executing range-based job: ${job.jobName}`);
+    logger.info(`🎯 Executing range-based job: ${job.jobName}`);
 
     if (!job.startFileId || !job.endFileId) {
       throw new Error('Range-based job requires startFileId and endFileId');
@@ -427,7 +428,7 @@ export class JobSchedulerService {
       jobName: job.jobName
     });
 
-    console.log(`✅ Range-based job completed: ${result.successfulFiles}/${result.totalFiles} files processed`);
+    logger.info(`✅ Range-based job completed: ${result.successfulFiles}/${result.totalFiles} files processed`);
   }
 
   /**
@@ -436,7 +437,7 @@ export class JobSchedulerService {
   private async executeCleanupJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
 
-    console.log(`🗑️ Executing cleanup job: ${job.jobName}`);
+    logger.info(`🗑️ Executing cleanup job: ${job.jobName}`);
 
     const config = job.metadata as any || {};
     const retentionDays = config.retentionDays || 30;
@@ -469,7 +470,7 @@ export class JobSchedulerService {
       }
     });
 
-    console.log(`✅ Cleanup completed: ${deletedLogs.count} logs, ${deletedStats.count} stats, ${deletedJobs.count} jobs deleted`);
+    logger.info(`✅ Cleanup completed: ${deletedLogs.count} logs, ${deletedStats.count} stats, ${deletedJobs.count} jobs deleted`);
   }
 
   /**
@@ -478,7 +479,7 @@ export class JobSchedulerService {
   private async executeHealthCheckJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
 
-    console.log(`🏥 Executing health check job: ${job.jobName}`);
+    logger.info(`🏥 Executing health check job: ${job.jobName}`);
 
     const healthReport = {
       timestamp: new Date(),
@@ -495,7 +496,7 @@ export class JobSchedulerService {
       healthReport.database.status = 'healthy';
     } catch (error) {
       healthReport.database.status = 'unhealthy';
-      console.error('❌ Database health check failed:', error);
+      logger.error('❌ Database health check failed:', error as Error);
     }
 
     try {
@@ -505,7 +506,7 @@ export class JobSchedulerService {
       healthReport.services = containerHealth;
     } catch (error) {
       healthReport.services.status = 'unhealthy';
-      console.error('❌ Services health check failed:', error);
+      logger.error('❌ Services health check failed:', error as Error);
     }
 
     try {
@@ -521,7 +522,7 @@ export class JobSchedulerService {
       };
     } catch (error) {
       healthReport.jobs.status = 'unhealthy';
-      console.error('❌ Jobs health check failed:', error);
+      logger.error('❌ Jobs health check failed:', error as Error);
     }
 
     // Update job metadata with health report
@@ -539,7 +540,7 @@ export class JobSchedulerService {
       check => typeof check === 'object' && check !== null && check.status === 'healthy'
     ) ? 'healthy' : 'issues-detected';
 
-    console.log(`✅ Health check completed: ${overallStatus}`);
+    logger.info(`✅ Health check completed: ${overallStatus}`);
   }
 
   /**
@@ -547,7 +548,7 @@ export class JobSchedulerService {
    */
   private async executeManualJob(context: JobExecutionContext): Promise<void> {
     const { job } = context;
-    console.log(`👤 Executing manual job: ${job.jobName}`);
+    logger.info(`👤 Executing manual job: ${job.jobName}`);
 
     // Manual jobs can be any type, use metadata to determine execution
     const config = job.metadata as any || {};
@@ -577,9 +578,9 @@ export class JobSchedulerService {
     // For scheduled jobs, go back to SCHEDULED state to wait for next trigger
     if (job.cronSchedule && this.scheduledJobs.has(job.id)) {
       nextStatus = JobStatus.SCHEDULED as JobStatus;
-      console.log(`🔄 Scheduled job ${job.jobName} completed, returning to SCHEDULED state`);
+      logger.info(`🔄 Scheduled job ${job.jobName} completed, returning to SCHEDULED state`);
     } else {
-      console.log(`✅ One-time job ${job.jobName} completed permanently`);
+      logger.info(`✅ One-time job ${job.jobName} completed permanently`);
     }
 
     await prisma.refinementJob.update({
@@ -592,7 +593,7 @@ export class JobSchedulerService {
       }
     });
 
-    console.log(`✅ Job completed successfully: ${job.jobName} (${executionTime}ms) [${nextStatus}]`);
+    logger.info(`✅ Job completed successfully: ${job.jobName} (${executionTime}ms) [${nextStatus}]`);
   }
 
   /**
@@ -605,7 +606,7 @@ export class JobSchedulerService {
       });
 
       if (!job) {
-        console.error(`❌ Cannot handle failure for job ${jobId} - job not found`);
+        logger.error(`❌ Cannot handle failure for job ${jobId} - job not found`);
         return;
       }
 
@@ -629,7 +630,7 @@ export class JobSchedulerService {
           }
         });
 
-        console.log(`🔄 Job ${job.jobName} will retry in ${delaySeconds}s (attempt ${newRetryCount}/${job.maxRetries})`);
+        logger.info(`🔄 Job ${job.jobName} will retry in ${delaySeconds}s (attempt ${newRetryCount}/${job.maxRetries})`);
       } else {
         // Max retries exceeded, mark as failed
         await prisma.refinementJob.update({
@@ -641,10 +642,10 @@ export class JobSchedulerService {
           }
         });
 
-        console.error(`❌ Job ${job.jobName} failed after ${job.maxRetries} retries: ${errorMessage}`);
+        logger.error(`❌ Job ${job.jobName} failed after ${job.maxRetries} retries: ${errorMessage}`);
       }
     } catch (dbError) {
-      console.error(`❌ Failed to handle job failure for ${jobId}:`, dbError);
+      logger.error(`❌ Failed to handle job failure for ${jobId}:`, dbError as Error);
     }
   }
 
@@ -695,13 +696,13 @@ export class JobSchedulerService {
         }
         
         await this.scheduleJob(job);
-        console.log(`🔄 Loaded scheduled job: ${job.jobName} [${job.status}]`);
+        logger.info(`🔄 Loaded scheduled job: ${job.jobName} [${job.status}]`);
       } catch (error) {
-        console.error(`❌ Failed to load scheduled job ${job.id}:`, error);
+        logger.error(`❌ Failed to load scheduled job ${job.id}:`, error as Error);
       }
     }
 
-    console.log(`📅 Loaded ${scheduledJobs.length} scheduled jobs`);
+    logger.info(`📅 Loaded ${scheduledJobs.length} scheduled jobs`);
   }
 
   /**
@@ -737,7 +738,7 @@ export class JobSchedulerService {
       }
     });
 
-    console.log('🔧 System maintenance jobs scheduled');
+    logger.info('🔧 System maintenance jobs scheduled');
   }
 
   /**
@@ -763,7 +764,7 @@ export class JobSchedulerService {
           this.executeJob(job.id);
         }
       } catch (error) {
-        console.error('❌ Error in job queue processor:', error);
+        logger.error('❌ Error in job queue processor:', error as Error);
       }
     }, 60000); // Check every minute
   }
@@ -814,7 +815,7 @@ export class JobSchedulerService {
    * Stop a scheduled job (deprecated - use stopJob instead)
    */
   async stopScheduledJob(jobId: string): Promise<void> {
-    console.warn('⚠️ stopScheduledJob is deprecated, use stopJob instead');
+    logger.warn('⚠️ stopScheduledJob is deprecated, use stopJob instead');
     await this.stopJob(jobId);
   }
 
@@ -823,24 +824,24 @@ export class JobSchedulerService {
    */
   private setupGracefulShutdown(): void {
     const shutdown = async () => {
-      console.log('🛑 Gracefully shutting down Job Scheduler...');
+      logger.info('🛑 Gracefully shutting down Job Scheduler...');
       this.isShuttingDown = true;
 
       // Stop all scheduled jobs
       for (const [jobId, task] of this.scheduledJobs) {
         task.stop();
-        console.log(`⏹️ Stopped scheduled job: ${jobId}`);
+        logger.info(`⏹️ Stopped scheduled job: ${jobId}`);
       }
 
       // Wait for running jobs to complete
       let waitCount = 0;
       while (this.runningJobs.size > 0 && waitCount < 30) {
-        console.log(`⏳ Waiting for ${this.runningJobs.size} running jobs to complete...`);
+        logger.info(`⏳ Waiting for ${this.runningJobs.size} running jobs to complete...`);
         await new Promise(resolve => setTimeout(resolve, 1000));
         waitCount++;
       }
 
-      console.log('✅ Job Scheduler shutdown complete');
+      logger.info('✅ Job Scheduler shutdown complete');
       process.exit(0);
     };
 
@@ -951,7 +952,7 @@ export class JobSchedulerService {
 
     // If job has a cron schedule, transition to SCHEDULED state
     if (job.cronSchedule) {
-      console.log(`🕐 Starting scheduled job: ${job.jobName} with cron: ${job.cronSchedule}`);
+      logger.info(`🕐 Starting scheduled job: ${job.jobName} with cron: ${job.cronSchedule}`);
       
       // Update job status to SCHEDULED
       const updatedJob = await prisma.refinementJob.update({
@@ -965,10 +966,10 @@ export class JobSchedulerService {
       // Schedule the job with cron
       await this.scheduleJob(updatedJob);
       
-      console.log(`✅ Job ${job.jobName} has been scheduled successfully [SCHEDULED]`);
+      logger.info(`✅ Job ${job.jobName} has been scheduled successfully [SCHEDULED]`);
     } else {
       // If no cron schedule, execute the job immediately (PENDING → RUNNING)
-      console.log(`🚀 Starting one-time job: ${job.jobName}`);
+      logger.info(`🚀 Starting one-time job: ${job.jobName}`);
       await this.executeJob(jobId);
     }
   }
@@ -986,13 +987,13 @@ export class JobSchedulerService {
       throw new Error(`Job ${jobId} not found`);
     }
 
-    console.log(`🛑 Stopping job: ${job.jobName} [${job.status}]`);
+    logger.info(`🛑 Stopping job: ${job.jobName} [${job.status}]`);
 
     // If job is currently running, stop the execution
     const context = this.runningJobs.get(jobId);
     if (context) {
       this.runningJobs.delete(jobId);
-      console.log(`⏹️ Stopped running execution for job: ${job.jobName}`);
+      logger.info(`⏹️ Stopped running execution for job: ${job.jobName}`);
     }
 
     // If job has a cron schedule, stop the scheduled task
@@ -1001,7 +1002,7 @@ export class JobSchedulerService {
       if (scheduledTask) {
         scheduledTask.stop();
         this.scheduledJobs.delete(jobId);
-        console.log(`📅 Stopped scheduled task for job: ${job.jobName}`);
+        logger.info(`📅 Stopped scheduled task for job: ${job.jobName}`);
       }
     }
 
@@ -1015,7 +1016,7 @@ export class JobSchedulerService {
       }
     });
 
-    console.log(`✅ Job ${job.jobName} has been stopped successfully`);
+    logger.info(`✅ Job ${job.jobName} has been stopped successfully`);
   }
 
   /**
@@ -1031,7 +1032,7 @@ export class JobSchedulerService {
       throw new Error(`Job ${jobId} not found`);
     }
 
-    console.log(`🔄 Retrying job: ${job.jobName} [${job.status}]`);
+    logger.info(`🔄 Retrying job: ${job.jobName} [${job.status}]`);
 
     // Check if job can be retried
     if (job.status === JobStatus.RUNNING) {
@@ -1064,15 +1065,15 @@ export class JobSchedulerService {
       }
     });
 
-    console.log(`✅ Job ${job.jobName} has been reset for retry`);
+    logger.info(`✅ Job ${job.jobName} has been reset for retry`);
 
     // If job has cron schedule, reschedule it
     if (job.cronSchedule) {
-      console.log(`📅 Rescheduling job: ${job.jobName} with cron: ${job.cronSchedule}`);
+      logger.info(`📅 Rescheduling job: ${job.jobName} with cron: ${job.cronSchedule}`);
       await this.scheduleJob(updatedJob);
     } else {
       // For one-time jobs, execute immediately
-      console.log(`🚀 Executing retry for one-time job: ${job.jobName}`);
+      logger.info(`🚀 Executing retry for one-time job: ${job.jobName}`);
       await this.executeJob(jobId);
     }
   }

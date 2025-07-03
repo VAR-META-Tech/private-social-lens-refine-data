@@ -6,13 +6,14 @@
  */
 
 import { ServiceApplication } from '@/application';
+import { logger } from './services/logging.service';
 
 /**
  * Main service function
  */
 async function main() {
-  console.log('🌟 Batch Refinement Service');
-  console.log('==========================');
+  logger.info('🌟 Batch Refinement Service', {});
+  logger.info('==========================', {});
 
   const service = new ServiceApplication();
 
@@ -25,37 +26,37 @@ async function main() {
       case 'start':
       case undefined:
         // Default action: start the service
-        console.log('🚀 Starting service in daemon mode...');
+        logger.info('🚀 Starting service in daemon mode...', {});
         await service.start();
         break;
 
       case 'status':
-        console.log('📊 Checking service status...');
+        logger.info('📊 Checking service status...', {});
         await service.start();
         const status = await service.getStatus();
-        console.log('Service Status:', JSON.stringify(status, null, 2));
+        logger.info(`Service Status: ${status}`);
         process.exit(0);
         break;
 
       case 'health':
-        console.log('🏥 Running health check...');
+        logger.info('🏥 Running health check...', {});
         await service.start();
         await service.runHealthCheck();
         process.exit(0);
         break;
 
       case 'jobs':
-        console.log('📋 Listing scheduled jobs...');
+        logger.info('📋 Listing scheduled jobs...', {});
         await service.start();
         await service.listScheduledJobs();
         process.exit(0);
         break;
 
       case 'create-examples':
-        console.log('📅 Creating example scheduled jobs...');
+        logger.info('📅 Creating example scheduled jobs...', {});
         await service.start();
         await service.createExampleJobs();
-        console.log('✅ Example jobs created. Service will continue running...');
+        logger.info('✅ Example jobs created. Service will continue running...', {});
         break;
 
       case 'schedule':
@@ -82,7 +83,7 @@ async function main() {
           process.exit(1);
         }
 
-        console.log(`🎯 Scheduling one-time ${jobType} job...`);
+        logger.info(`🎯 Scheduling one-time ${jobType} job...`, {});
         await service.start();
 
         const jobId = await service.scheduleOneTimeJob({
@@ -94,8 +95,8 @@ async function main() {
           metadata: { manual: true, scheduledAt: new Date() }
         });
 
-        console.log(`✅ Job scheduled with ID: ${jobId}`);
-        console.log('Service will continue running to execute the job...');
+        logger.info(`✅ Job scheduled with ID: ${jobId}`, {});
+        logger.info('Service will continue running to execute the job...', {});
         break;
 
       case 'help':
@@ -106,13 +107,13 @@ async function main() {
         break;
 
       default:
-        console.error(`❌ Unknown command: ${command}`);
+        logger.error(`❌ Unknown command: ${command}`);
         printHelp();
         process.exit(1);
     }
 
   } catch (error) {
-    console.error('❌ Service failed:', error);
+    logger.error('❌ Service failed:', error as Error);
     process.exit(1);
   }
 }
@@ -121,7 +122,7 @@ async function main() {
  * Print help information
  */
 function printHelp() {
-  console.log(`
+  logger.info(`
 🌟 Batch Refinement Service Commands:
 
   npm run service [start]              Start the service (default)
@@ -153,6 +154,6 @@ Use Ctrl+C to stop the service gracefully.
 
 // Start the service
 main().catch((error) => {
-  console.error('❌ Fatal error:', error);
+  logger.error('❌ Fatal error:', error as Error);
   process.exit(1);
 });

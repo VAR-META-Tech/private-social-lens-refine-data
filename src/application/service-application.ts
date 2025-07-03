@@ -6,6 +6,7 @@
 
 import { container } from '@/core';
 import { JobType } from '@/generated/prisma';
+import { logger } from '@/services/logging.service';
 
 export class ServiceApplication {
   private isRunning = false;
@@ -16,11 +17,11 @@ export class ServiceApplication {
    */
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('⚠️ Service is already running');
+      logger.warn('⚠️ Service is already running');
       return;
     }
 
-    console.log('🚀 Starting Batch Refinement Service...');
+    logger.info('🚀 Starting Batch Refinement Service...');
 
     try {
       // Initialize container and all services
@@ -32,15 +33,15 @@ export class ServiceApplication {
       // Mark as running
       this.isRunning = true;
 
-      console.log('✅ Batch Refinement Service started successfully');
-      console.log('🕐 Job scheduler is running and monitoring for scheduled jobs');
-      console.log('📊 Service is ready to process files automatically');
+      logger.info('✅ Batch Refinement Service started successfully');
+      logger.info('🕐 Job scheduler is running and monitoring for scheduled jobs');
+      logger.info('📊 Service is ready to process files automatically');
 
       // Keep the service running
       await this.keepAlive();
 
     } catch (error) {
-      console.error('❌ Failed to start service:', error);
+      logger.error('❌ Failed to start service:', error as Error);
       process.exit(1);
     }
   }
@@ -50,11 +51,11 @@ export class ServiceApplication {
    */
   async stop(): Promise<void> {
     if (!this.isRunning) {
-      console.log('⚠️ Service is not running');
+      logger.warn('⚠️ Service is not running');
       return;
     }
 
-    console.log('🛑 Stopping Batch Refinement Service...');
+    logger.info('🛑 Stopping Batch Refinement Service...');
     this.shutdownSignalReceived = true;
 
     try {
@@ -63,10 +64,10 @@ export class ServiceApplication {
       await jobSchedulerService.stopScheduledJob('all');
 
       this.isRunning = false;
-      console.log('✅ Batch Refinement Service stopped gracefully');
+      logger.info('✅ Batch Refinement Service stopped gracefully');
 
     } catch (error) {
-      console.error('❌ Error during service shutdown:', error);
+      logger.error('❌ Error during service shutdown:', error as Error);
     }
   }
 
@@ -95,7 +96,7 @@ export class ServiceApplication {
    * Create example scheduled jobs
    */
   async createExampleJobs(): Promise<void> {
-    console.log('📅 Creating example scheduled jobs...');
+    logger.info('📅 Creating example scheduled jobs...');
 
     const { jobSchedulerService } = container.getServices();
 
@@ -123,11 +124,11 @@ export class ServiceApplication {
       // NOTE: Health check is automatically created by JobSchedulerService.scheduleSystemJobs()
       // If you need additional health checks, create with different names and schedules
 
-      console.log('✅ Example scheduled jobs created');
-      console.log('ℹ️  System schedulers (health-check, weekly-cleanup) are created automatically by JobSchedulerService');
+      logger.info('✅ Example scheduled jobs created');
+      logger.info('ℹ️  System schedulers (health-check, weekly-cleanup) are created automatically by JobSchedulerService');
 
     } catch (error) {
-      console.error('❌ Failed to create example jobs:', error);
+      logger.error('❌ Failed to create example jobs:', error as Error);
       // Don't throw - these might already exist
     }
   }
@@ -155,7 +156,7 @@ export class ServiceApplication {
     // Execute immediately
     await jobSchedulerService.triggerJob(job.id);
 
-    console.log(`🎯 One-time job scheduled and triggered: ${job.jobName}`);
+    logger.info(`🎯 One-time job scheduled and triggered: ${job.jobName}`);
     return job.id;
   }
 
@@ -163,30 +164,30 @@ export class ServiceApplication {
    * Run health check manually
    */
   async runHealthCheck(): Promise<void> {
-    console.log('🏥 Running manual health check...');
+    logger.info('🏥 Running manual health check...');
 
     try {
       const status = await this.getStatus();
 
-      console.log('📊 Service Status:');
-      console.log(`  - Running: ${status.isRunning}`);
-      console.log(`  - Uptime: ${Math.round(status.uptime)}s`);
-      console.log(`  - Scheduled Jobs: ${status.scheduler.scheduledJobs}`);
-      console.log(`  - Running Jobs: ${status.scheduler.runningJobs}`);
-      console.log(`  - Container Health: ${status.container.status}`);
+      logger.info('📊 Service Status:');
+      logger.info(`  - Running: ${status.isRunning}`);
+      logger.info(`  - Uptime: ${Math.round(status.uptime)}s`);
+      logger.info(`  - Scheduled Jobs: ${status.scheduler.scheduledJobs}`);
+      logger.info(`  - Running Jobs: ${status.scheduler.runningJobs}`);
+      logger.info(`  - Container Health: ${status.container.status}`);
 
       // Check recent jobs
       if (status.scheduler.recentJobs?.length > 0) {
-        console.log('📋 Recent Jobs:');
+        logger.info('📋 Recent Jobs:');
         status.scheduler.recentJobs.forEach((job: any) => {
-          console.log(`  - ${job.jobName}: ${job.status} (${job.createdAt})`);
+          logger.info(`  - ${job.jobName}: ${job.status} (${job.createdAt})`);
         });
       }
 
-      console.log('✅ Health check completed');
+      logger.info('✅ Health check completed');
 
     } catch (error) {
-      console.error('❌ Health check failed:', error);
+      logger.error('❌ Health check failed:', error as Error);
       throw error;
     }
   }
@@ -195,46 +196,46 @@ export class ServiceApplication {
    * List all scheduled jobs
    */
   async listScheduledJobs(): Promise<void> {
-    console.log('📋 Listing all scheduled jobs...');
+    logger.info('📋 Listing all scheduled jobs...');
 
     try {
       const { jobSchedulerService } = container.getServices();
       const status = await jobSchedulerService.getStatus();
 
       if (status.recentJobs.length === 0) {
-        console.log('📭 No jobs found');
+        logger.info('📭 No jobs found');
         return;
       }
 
-      console.log('📊 Job Summary:');
-      console.log(`  - Total scheduled: ${status.scheduledJobs}`);
-      console.log(`  - Currently running: ${status.runningJobs}`);
-      console.log(`  - Max concurrent: ${status.maxConcurrentJobs}`);
+      logger.info('📊 Job Summary:');
+      logger.info(`  - Total scheduled: ${status.scheduledJobs}`);
+      logger.info(`  - Currently running: ${status.runningJobs}`);
+      logger.info(`  - Max concurrent: ${status.maxConcurrentJobs}`);
 
-      console.log('\n📋 Recent Jobs:');
+      logger.info('\n📋 Recent Jobs:');
       status.recentJobs.forEach((job: any, index: number) => {
         const duration = job.completedAt && job.startedAt
           ? Math.round((new Date(job.completedAt).getTime() - new Date(job.startedAt).getTime()) / 1000)
           : null;
 
-        console.log(`${index + 1}. ${job.jobName}`);
-        console.log(`   Type: ${job.jobType}`);
-        console.log(`   Status: ${job.status}`);
-        console.log(`   Created: ${new Date(job.createdAt).toLocaleString()}`);
+        logger.info(`${index + 1}. ${job.jobName}`);
+        logger.info(`   Type: ${job.jobType}`);
+        logger.info(`   Status: ${job.status}`);
+        logger.info(`   Created: ${new Date(job.createdAt).toLocaleString()}`);
         if (job.startedAt) {
-          console.log(`   Started: ${new Date(job.startedAt).toLocaleString()}`);
+          logger.info(`   Started: ${new Date(job.startedAt).toLocaleString()}`);
         }
         if (job.completedAt) {
-          console.log(`   Completed: ${new Date(job.completedAt).toLocaleString()}`);
+          logger.info(`   Completed: ${new Date(job.completedAt).toLocaleString()}`);
         }
         if (duration) {
-          console.log(`   Duration: ${duration}s`);
+          logger.info(`   Duration: ${duration}s`);
         }
-        console.log('');
+        logger.info('');
       });
 
     } catch (error) {
-      console.error('❌ Failed to list jobs:', error);
+      logger.error('❌ Failed to list jobs:', error as Error);
       throw error;
     }
   }
@@ -254,7 +255,7 @@ export class ServiceApplication {
    */
   private setupGracefulShutdown(): void {
     const shutdown = async (signal: string) => {
-      console.log(`\n🛑 Received ${signal}, initiating graceful shutdown...`);
+      logger.info(`\n🛑 Received ${signal}, initiating graceful shutdown...`);
       await this.stop();
       process.exit(0);
     };
@@ -264,12 +265,12 @@ export class ServiceApplication {
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
-      console.error('❌ Uncaught Exception:', error);
+      logger.error('❌ Uncaught Exception:', error as Error);
       shutdown('EXCEPTION').then(() => process.exit(1));
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+      logger.error(`❌ Unhandled Rejection at: ${promise}, reason: ${reason}`);
       shutdown('REJECTION').then(() => process.exit(1));
     });
   }

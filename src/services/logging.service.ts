@@ -165,7 +165,7 @@ export class LoggingService {
       case 'warn': return '⚠️';
       case 'info': return 'ℹ️';
       case 'debug': return '🔍';
-      default: return '📝';
+      default: return '';
     }
   }
 

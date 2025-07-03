@@ -4,6 +4,7 @@
 import axios from 'axios';
 import { getEnvironmentConfig } from '@/config';
 import { container } from '@/core';
+import { logger } from './logging.service';
 
 /**
  * Refines a file using the decrypted EEK
@@ -15,7 +16,7 @@ export async function refineFile(fileId: number, dataEncryptionKey: string): Pro
   try {
     const config = getEnvironmentConfig();
     const url = `${config.refinementServiceApiBaseUrl}/refine`;
-    console.log(`Refining file ${fileId} with URL: ${url}`);
+    logger.info(`Refining file ${fileId} with URL: ${url}`);
 
     // https://docs.pinata.cloud/api-reference/endpoint/ipfs/pin-json-to-ipfs
     const body = {
@@ -35,7 +36,7 @@ export async function refineFile(fileId: number, dataEncryptionKey: string): Pro
     };
 
     const response = await axios.post(url, body, { headers });
-    console.log(`Successfully refined file ${fileId}`);
+    logger.info(`Successfully refined file ${fileId}`);
 
     // Log success using new logging service
     try {
@@ -45,8 +46,8 @@ export async function refineFile(fileId: number, dataEncryptionKey: string): Pro
         operation: 'refineFile',
         metadata: response.data
       }, 'api');
-    } catch (logError) {
-      console.error('Failed to log refinement success:', logError);
+          } catch (logError) {
+        logger.error('Failed to log refinement success:', logError instanceof Error ? logError : new Error(String(logError)));
     }
 
     return response.data;
@@ -54,7 +55,7 @@ export async function refineFile(fileId: number, dataEncryptionKey: string): Pro
     const errorMessage = error?.message || 'Unknown error';
     const responseData = error?.response?.data;
 
-    console.error(
+    logger.error(
       `Error refining file ${fileId}: ${errorMessage} ${JSON.stringify(responseData)}`
     );
 
@@ -66,8 +67,8 @@ export async function refineFile(fileId: number, dataEncryptionKey: string): Pro
         operation: 'refineFile',
         metadata: responseData
       }, 'api');
-    } catch (logError) {
-      console.error('Failed to log refinement error:', logError);
+          } catch (logError) {
+        logger.error('Failed to log refinement error:', logError instanceof Error ? logError : new Error(String(logError)));
     }
 
     return null;

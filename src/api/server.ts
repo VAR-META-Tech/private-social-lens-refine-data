@@ -256,9 +256,9 @@ export class ApiServer {
           }
         }, 'ApiServer');
 
-        console.log(`🚀 API Server running on http://localhost:${this.port}`);
-        console.log(`📚 API Documentation: http://localhost:${this.port}/api/docs`);
-        console.log(`❤️ Health Check: http://localhost:${this.port}/api/health`);
+        logger.info(`🚀 API Server running on http://localhost:${this.port}`);
+        logger.info(`📚 API Documentation: http://localhost:${this.port}/api/docs`);
+        logger.info(`❤️ Health Check: http://localhost:${this.port}/api/health`);
       });
 
       // Handle server errors
@@ -285,7 +285,6 @@ export class ApiServer {
             reject(error);
           } else {
             logger.info('API server stopped', {}, 'ApiServer');
-            console.log('🛑 API Server stopped');
             resolve();
           }
         });

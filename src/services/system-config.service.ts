@@ -5,6 +5,7 @@
 
 import { prisma } from '@/database/client';
 import { SystemConfig, ConfigDataType } from '@/generated/prisma';
+import { logger } from './logging.service';
 
 export interface ConfigValue {
   key: string;
@@ -84,7 +85,7 @@ export class SystemConfigService {
       }
     });
 
-    console.log(`⚙️ Updated config: ${key} = ${value}`);
+    logger.info(`⚙️ Updated config: ${key} = ${value}`);
     return config;
   }
 
@@ -119,7 +120,7 @@ export class SystemConfigService {
       await prisma.systemConfig.delete({
         where: { key }
       });
-      console.log(`🗑️ Deleted config: ${key}`);
+      logger.info(`🗑️ Deleted config: ${key}`);
       return true;
     } catch (error) {
       console.warn(`Failed to delete config ${key}:`, error);
@@ -222,7 +223,7 @@ export class SystemConfigService {
       );
     }
 
-    console.log(`✅ Initialized ${defaults.length} default configuration values`);
+    logger.info(`✅ Initialized ${defaults.length} default configuration values`);
   }
 
   /**

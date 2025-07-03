@@ -3,6 +3,7 @@
  */
 import { ethers } from 'ethers';
 import { getEnvironmentConfig } from '@/config';
+import { logger, LogContext } from './logging.service';
 
 // Import eccrypto as any to avoid type issues
 const eccrypto = require('eccrypto');
@@ -29,7 +30,12 @@ export function initializeContract(): void {
 
   provider = new ethers.providers.JsonRpcProvider(config.rpcUrl, network);
   isInitialized = true;
-  console.log(`Connected to DataRegistry contract at ${config.dataRegistryAddress}`);
+
+  const logContext: LogContext = {
+    operation: 'blockchain-init'
+  };
+
+  logger.info(`Connected to DataRegistry contract at ${config.dataRegistryAddress}`, logContext, 'Blockchain');
 }
 
 /**
@@ -111,7 +117,7 @@ export async function getFilePermissions(fileId: number): Promise<string | null>
 
   try {
     const config = getEnvironmentConfig();
-    console.log(
+    logger.info(
       `Checking file permissions for ID: ${fileId} with address: ${config.dlpAddress}`
     );
 
@@ -127,22 +133,22 @@ export async function getFilePermissions(fileId: number): Promise<string | null>
     ]);
 
     // Make a raw call to the contract
-    console.log(`Making raw call to contract ${config.dataRegistryAddress}`);
+    logger.info(`Making raw call to contract ${config.dataRegistryAddress}`);
     const result = await provider.call({
       to: config.dataRegistryAddress,
       data,
     });
 
-    console.log(`Got raw result: ${result.slice(0, 50)}...`);
+    logger.info(`Got raw result: ${result.slice(0, 50)}...`);
 
     // If we got a result, decode it
     if (result && result !== "0x") {
       try {
         const decoded = iface.decodeFunctionResult("filePermissions", result);
-        console.log(`Successfully decoded result`);
+        logger.info('Successfully decoded result');
 
         if (decoded && decoded[0] && decoded[0] !== "") {
-          console.log(`Found EEK for file ${fileId}`);
+          logger.info(`Found EEK for file ${fileId}`);
           return decoded[0] as string;
         }
       } catch (decodeError: any) {
@@ -150,7 +156,7 @@ export async function getFilePermissions(fileId: number): Promise<string | null>
       }
     }
 
-    console.log(`No EEK found for file ${fileId}`);
+    logger.info(`No EEK found for file ${fileId}`);
     return null;
   } catch (error: any) {
     console.error(
@@ -176,7 +182,7 @@ export async function checkFileRefinement(fileId: number, refinerId?: number): P
     const config = getEnvironmentConfig();
     const actualRefinerId = refinerId || config.defaultRefinerId;
 
-    console.log(
+    logger.info(
       `Checking if file ${fileId} has been refined by refiner ${actualRefinerId}`
     );
 
@@ -192,22 +198,22 @@ export async function checkFileRefinement(fileId: number, refinerId?: number): P
     ]);
 
     // Make a raw call to the contract
-    console.log(`Making raw call to contract ${config.dataRegistryAddress}`);
+    logger.info(`Making raw call to contract ${config.dataRegistryAddress}`);
     const result = await provider.call({
       to: config.dataRegistryAddress,
       data,
     });
 
-    console.log(`Got raw result: ${result.slice(0, 50)}...`);
+    logger.info(`Got raw result: ${result.slice(0, 50)}...`);
 
     // If we got a result, decode it
     if (result && result !== "0x") {
       try {
         const decoded = iface.decodeFunctionResult("fileRefinements", result);
-        console.log(`Successfully decoded result`);
+        logger.info('Successfully decoded result');
 
         if (decoded && decoded[0] && decoded[0] !== "") {
-          console.log(`File ${fileId} has already been refined by refiner ${actualRefinerId}`);
+          logger.info(`File ${fileId} has already been refined by refiner ${actualRefinerId}`);
           return true;
         }
       } catch (decodeError: any) {
@@ -215,7 +221,7 @@ export async function checkFileRefinement(fileId: number, refinerId?: number): P
       }
     }
 
-    console.log(`File ${fileId} has not been refined by refiner ${actualRefinerId}`);
+    logger.info(`File ${fileId} has not been refined by refiner ${actualRefinerId}`);
     return false;
   } catch (error: any) {
     console.error(
