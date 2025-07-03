@@ -148,7 +148,7 @@ export class BatchStatisticsService {
       batchEndTime: new Date()
     });
 
-    logger.info(`📈 Aggregated statistics for job ${jobId}:`, {
+    logger.info(`📈 Aggregated statistics for job ${jobId}: ${JSON.stringify({
       processed: stats.processedCount,
       success: stats.successCount,
       failed: stats.failedCount,
@@ -156,7 +156,7 @@ export class BatchStatisticsService {
       skipped: stats.skippedCount,
       avgTime: Math.round(averageProcessingTimeMs),
       totalGas: stats.totalGasUsed.toString()
-    });
+    })}`);
 
     return updatedStats;
   }
