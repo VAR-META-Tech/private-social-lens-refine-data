@@ -43,7 +43,7 @@ import { AuthenticatedRequest, requireRole } from '../middleware/auth';
  *           description: Number of files to process in each batch
  *         status:
  *           type: string
- *           enum: [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, RETRYING]
+ *           enum: [PENDING, SCHEDULED, RUNNING, COMPLETED, FAILED, CANCELLED, RETRYING]
  *           description: Current status of the job
  *         priority:
  *           type: integer
@@ -154,7 +154,7 @@ const updateJobSchema = Joi.object({
  *         name: status
  *         schema:
  *           type: string
- *           enum: [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, RETRYING]
+ *           enum: [PENDING, SCHEDULED, RUNNING, COMPLETED, FAILED, CANCELLED, RETRYING]
  *         description: Filter by job status
  *       - in: query
  *         name: jobType

@@ -85,7 +85,7 @@ export class JobSchedulerService {
       const existingJob = await prisma.refinementJob.findFirst({
         where: { 
           jobName: config.jobName,
-          status: { in: [JobStatus.PENDING, JobStatus.RUNNING] }
+          status: { in: [JobStatus.PENDING, JobStatus.SCHEDULED, JobStatus.RUNNING] }
         }
       });
 
@@ -116,10 +116,21 @@ export class JobSchedulerService {
 
       // Schedule the job if enabled
       if (config.enabled !== false) {
-        await this.scheduleJob(job);
+        // Update status to SCHEDULED and schedule the job
+        const scheduledJob = await prisma.refinementJob.update({
+          where: { id: job.id },
+          data: { 
+            status: JobStatus.SCHEDULED,
+            scheduledAt: new Date()
+          }
+        });
+        
+        await this.scheduleJob(scheduledJob);
+        console.log(`📅 Created and scheduled job: ${job.jobName} [${job.cronSchedule}] [SCHEDULED]`);
+        return scheduledJob;
       }
 
-      console.log(`📅 Created scheduled job: ${job.jobName} [${job.cronSchedule}]`);
+      console.log(`📅 Created job: ${job.jobName} [${job.cronSchedule}] [PENDING] (not scheduled)`);
       return job;
 
     } catch (error) {
@@ -138,13 +149,20 @@ export class JobSchedulerService {
     }
 
     try {
+      // Don't create duplicate scheduled tasks
+      if (this.scheduledJobs.has(job.id)) {
+        console.log(`⚠️ Job ${job.jobName} is already scheduled, skipping`);
+        return;
+      }
+
       const task = cron.schedule(job.cronSchedule, async () => {
+        // SCHEDULED → RUNNING: Execute the job
         await this.executeJob(job.id);
       });
 
       this.scheduledJobs.set(job.id, task);
 
-      console.log(`⏰ Scheduled job ${job.jobName} with cron: ${job.cronSchedule}`);
+      console.log(`⏰ Scheduled job ${job.jobName} with cron: ${job.cronSchedule} [SCHEDULED]`);
     } catch (error) {
       console.error(`❌ Failed to schedule job ${job.id}:`, error);
       throw error;
@@ -553,17 +571,28 @@ export class JobSchedulerService {
     const { job, startTime } = context;
     const executionTime = Date.now() - startTime.getTime();
 
+    // Determine next status based on job type
+    let nextStatus: JobStatus = JobStatus.COMPLETED;
+    
+    // For scheduled jobs, go back to SCHEDULED state to wait for next trigger
+    if (job.cronSchedule && this.scheduledJobs.has(job.id)) {
+      nextStatus = JobStatus.SCHEDULED as JobStatus;
+      console.log(`🔄 Scheduled job ${job.jobName} completed, returning to SCHEDULED state`);
+    } else {
+      console.log(`✅ One-time job ${job.jobName} completed permanently`);
+    }
+
     await prisma.refinementJob.update({
       where: { id: job.id },
       data: {
-        status: JobStatus.COMPLETED,
+        status: nextStatus,
         completedAt: new Date(),
         retryCount: 0, // Reset retry count on success
         nextRetryAt: null
       }
     });
 
-    console.log(`✅ Job completed successfully: ${job.jobName} (${executionTime}ms)`);
+    console.log(`✅ Job completed successfully: ${job.jobName} (${executionTime}ms) [${nextStatus}]`);
   }
 
   /**
@@ -647,14 +676,26 @@ export class JobSchedulerService {
           not: null
         },
         status: {
-          not: JobStatus.CANCELLED
+          in: [JobStatus.SCHEDULED, JobStatus.PENDING]
         }
       }
     });
 
     for (const job of scheduledJobs) {
       try {
+        // Update status to SCHEDULED if it's PENDING with cronSchedule
+        if (job.status === JobStatus.PENDING) {
+          await prisma.refinementJob.update({
+            where: { id: job.id },
+            data: { 
+              status: JobStatus.SCHEDULED,
+              scheduledAt: new Date()
+            }
+          });
+        }
+        
         await this.scheduleJob(job);
+        console.log(`🔄 Loaded scheduled job: ${job.jobName} [${job.status}]`);
       } catch (error) {
         console.error(`❌ Failed to load scheduled job ${job.id}:`, error);
       }
@@ -770,21 +811,11 @@ export class JobSchedulerService {
   }
 
   /**
-   * Stop a scheduled job
+   * Stop a scheduled job (deprecated - use stopJob instead)
    */
   async stopScheduledJob(jobId: string): Promise<void> {
-    const task = this.scheduledJobs.get(jobId);
-    if (task) {
-      task.stop();
-      this.scheduledJobs.delete(jobId);
-
-      await prisma.refinementJob.update({
-        where: { id: jobId },
-        data: { status: JobStatus.CANCELLED }
-      });
-
-      console.log(`⏹️ Stopped scheduled job: ${jobId}`);
-    }
+    console.warn('⚠️ stopScheduledJob is deprecated, use stopJob instead');
+    await this.stopJob(jobId);
   }
 
   /**
@@ -913,24 +944,30 @@ export class JobSchedulerService {
       throw new Error(`Job ${jobId} not found`);
     }
 
-    // If job has a cron schedule, create the schedule
+    // Validate job can be started
+    if (job.status === JobStatus.RUNNING) {
+      throw new Error(`Cannot start job ${job.jobName} - job is already running`);
+    }
+
+    // If job has a cron schedule, transition to SCHEDULED state
     if (job.cronSchedule) {
       console.log(`🕐 Starting scheduled job: ${job.jobName} with cron: ${job.cronSchedule}`);
       
-      // Update job status to pending if it's not already running
-      if (job.status !== JobStatus.RUNNING) {
-        await prisma.refinementJob.update({
-          where: { id: jobId },
-          data: { status: JobStatus.PENDING }
-        });
-      }
+      // Update job status to SCHEDULED
+      const updatedJob = await prisma.refinementJob.update({
+        where: { id: jobId },
+        data: { 
+          status: JobStatus.SCHEDULED,
+          scheduledAt: new Date()
+        }
+      });
       
       // Schedule the job with cron
-      await this.scheduleJob(job);
+      await this.scheduleJob(updatedJob);
       
-      console.log(`✅ Job ${job.jobName} has been scheduled successfully`);
+      console.log(`✅ Job ${job.jobName} has been scheduled successfully [SCHEDULED]`);
     } else {
-      // If no cron schedule, execute the job immediately
+      // If no cron schedule, execute the job immediately (PENDING → RUNNING)
       console.log(`🚀 Starting one-time job: ${job.jobName}`);
       await this.executeJob(jobId);
     }
@@ -1001,12 +1038,12 @@ export class JobSchedulerService {
       throw new Error(`Cannot retry job ${job.jobName} - job is currently running`);
     }
 
-    if (job.status === JobStatus.COMPLETED) {
-      throw new Error(`Cannot retry job ${job.jobName} - job already completed successfully`);
+    if (job.status === JobStatus.SCHEDULED) {
+      throw new Error(`Cannot retry job ${job.jobName} - job is currently scheduled and active`);
     }
 
-    if (job.status === JobStatus.CANCELLED) {
-      throw new Error(`Cannot retry job ${job.jobName} - job has been cancelled`);
+    if (job.status === JobStatus.COMPLETED && !job.cronSchedule) {
+      throw new Error(`Cannot retry job ${job.jobName} - one-time job already completed successfully`);
     }
 
     // Check if job has exceeded max retries

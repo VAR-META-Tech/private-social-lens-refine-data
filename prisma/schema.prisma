@@ -20,6 +20,7 @@ datasource db {
 
 enum JobStatus {
   PENDING
+  SCHEDULED
   RUNNING
   COMPLETED
   FAILED
