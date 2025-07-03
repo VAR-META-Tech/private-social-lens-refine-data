@@ -904,37 +904,140 @@ export class JobSchedulerService {
    * Start a job
    */
   async startJob(jobId: string): Promise<void> {
-    await this.executeJob(jobId);
+    // Get job details to check if it has a cron schedule
+    const job = await prisma.refinementJob.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`);
+    }
+
+    // If job has a cron schedule, create the schedule
+    if (job.cronSchedule) {
+      console.log(`🕐 Starting scheduled job: ${job.jobName} with cron: ${job.cronSchedule}`);
+      
+      // Update job status to pending if it's not already running
+      if (job.status !== JobStatus.RUNNING) {
+        await prisma.refinementJob.update({
+          where: { id: jobId },
+          data: { status: JobStatus.PENDING }
+        });
+      }
+      
+      // Schedule the job with cron
+      await this.scheduleJob(job);
+      
+      console.log(`✅ Job ${job.jobName} has been scheduled successfully`);
+    } else {
+      // If no cron schedule, execute the job immediately
+      console.log(`🚀 Starting one-time job: ${job.jobName}`);
+      await this.executeJob(jobId);
+    }
   }
 
   /**
    * Stop a job
    */
   async stopJob(jobId: string): Promise<void> {
+    // Get job details
+    const job = await prisma.refinementJob.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`);
+    }
+
+    console.log(`🛑 Stopping job: ${job.jobName} [${job.status}]`);
+
+    // If job is currently running, stop the execution
     const context = this.runningJobs.get(jobId);
     if (context) {
       this.runningJobs.delete(jobId);
-      await prisma.refinementJob.update({
-        where: { id: jobId },
-        data: {
-          status: JobStatus.CANCELLED,
-          completedAt: new Date()
-        }
-      });
+      console.log(`⏹️ Stopped running execution for job: ${job.jobName}`);
     }
+
+    // If job has a cron schedule, stop the scheduled task
+    if (job.cronSchedule) {
+      const scheduledTask = this.scheduledJobs.get(jobId);
+      if (scheduledTask) {
+        scheduledTask.stop();
+        this.scheduledJobs.delete(jobId);
+        console.log(`📅 Stopped scheduled task for job: ${job.jobName}`);
+      }
+    }
+
+    // Update job status in database
+    await prisma.refinementJob.update({
+      where: { id: jobId },
+      data: {
+        status: JobStatus.CANCELLED,
+        completedAt: new Date(),
+        nextRetryAt: null // Clear any pending retry
+      }
+    });
+
+    console.log(`✅ Job ${job.jobName} has been stopped successfully`);
   }
 
   /**
    * Retry a failed job
    */
   async retryJob(jobId: string): Promise<void> {
-    await prisma.refinementJob.update({
+    // Get job details
+    const job = await prisma.refinementJob.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`);
+    }
+
+    console.log(`🔄 Retrying job: ${job.jobName} [${job.status}]`);
+
+    // Check if job can be retried
+    if (job.status === JobStatus.RUNNING) {
+      throw new Error(`Cannot retry job ${job.jobName} - job is currently running`);
+    }
+
+    if (job.status === JobStatus.COMPLETED) {
+      throw new Error(`Cannot retry job ${job.jobName} - job already completed successfully`);
+    }
+
+    if (job.status === JobStatus.CANCELLED) {
+      throw new Error(`Cannot retry job ${job.jobName} - job has been cancelled`);
+    }
+
+    // Check if job has exceeded max retries
+    if (job.retryCount >= job.maxRetries) {
+      throw new Error(`Cannot retry job ${job.jobName} - max retries (${job.maxRetries}) exceeded`);
+    }
+
+    // Update job for retry
+    const updatedJob = await prisma.refinementJob.update({
       where: { id: jobId },
       data: {
         status: JobStatus.PENDING,
-        retryCount: { increment: 1 }
+        retryCount: 0, // Reset retry count for manual retry
+        nextRetryAt: null, // Clear any scheduled retry
+        errorMessage: null, // Clear previous error
+        startedAt: null, // Clear previous start time
+        completedAt: null // Clear previous completion time
       }
     });
+
+    console.log(`✅ Job ${job.jobName} has been reset for retry`);
+
+    // If job has cron schedule, reschedule it
+    if (job.cronSchedule) {
+      console.log(`📅 Rescheduling job: ${job.jobName} with cron: ${job.cronSchedule}`);
+      await this.scheduleJob(updatedJob);
+    } else {
+      // For one-time jobs, execute immediately
+      console.log(`🚀 Executing retry for one-time job: ${job.jobName}`);
+      await this.executeJob(jobId);
+    }
   }
 
   /**
