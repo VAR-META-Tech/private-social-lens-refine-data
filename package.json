@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node dist/index-service.js",
+    "start": "node -r module-alias/register dist/index-api.js",
     "cli": "tsx src/index.ts",
     "service": "tsx src/index-service.ts",
     "api": "tsx src/index-api.ts",
@@ -30,6 +30,9 @@
   "prisma": {
     "seed": "tsx src/seed.ts"
   },
+  "_moduleAliases": {
+    "@": "dist"
+  },
   "dependencies": {
     "@prisma/client": "^6.10.1",
     "@types/node": "^24.0.8",
@@ -47,6 +50,7 @@
     "helmet": "^8.1.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "node-cron": "^4.2.0",
     "nodemailer": "^7.0.4",
     "prisma": "^6.10.1",

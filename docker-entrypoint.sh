@@ -38,6 +38,13 @@ generate_client() {
 
 # Main startup logic
 case "$1" in
+    "start")
+        wait_for_db
+        generate_client
+        auto_migrate
+        echo "Starting batch refinement service..."
+        exec npm start
+        ;;
     "service")
         wait_for_db
         generate_client
@@ -70,9 +77,10 @@ case "$1" in
         npx prisma db seed
         ;;
     *)
-        echo "Usage: $0 {service|api|cli|migrate|seed}"
+        echo "Usage: $0 {start|service|api|cli|migrate|seed}"
         echo "Available commands:"
-        echo "  service  - Start service with cron jobs (default)"
+        echo "  start    - Start service with path aliases (recommended)"
+        echo "  service  - Start service with cron jobs"
         echo "  api      - Start API server only"
         echo "  cli      - Run CLI commands"
         echo "  migrate  - Run database migrations only"
