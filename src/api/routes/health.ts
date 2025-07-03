@@ -16,7 +16,6 @@ const router = Router();
  *     tags: [Health]
  *     summary: Basic health check
  *     description: Returns basic server health status
- *     security: []
  *     responses:
  *       200:
  *         description: Server is healthy
@@ -52,7 +51,6 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
  *     tags: [Health]
  *     summary: Detailed health check
  *     description: Returns detailed system health including database and services
- *     security: []
  *     responses:
  *       200:
  *         description: Detailed health information
@@ -114,7 +112,6 @@ router.get('/detailed', asyncHandler(async (req: Request, res: Response) => {
  *     tags: [Health]
  *     summary: System metrics
  *     description: Returns current system performance metrics
- *     security: []
  *     responses:
  *       200:
  *         description: System metrics
@@ -147,7 +144,6 @@ router.get('/metrics', asyncHandler(async (req: Request, res: Response) => {
  *     tags: [Health]
  *     summary: Readiness probe
  *     description: Kubernetes readiness probe endpoint
- *     security: []
  *     responses:
  *       200:
  *         description: Service is ready
@@ -185,7 +181,6 @@ router.get('/readiness', asyncHandler(async (req: Request, res: Response) => {
  *     tags: [Health]
  *     summary: Liveness probe
  *     description: Kubernetes liveness probe endpoint
- *     security: []
  *     responses:
  *       200:
  *         description: Service is alive

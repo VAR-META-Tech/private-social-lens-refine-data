@@ -21,14 +21,14 @@ const createUserSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
   name: Joi.string().optional(),
-  role: Joi.string().valid('USER', 'ADMIN', 'SYSTEM').default('USER')
+  role: Joi.string().valid('USER', 'ADMIN').default('USER')
 })
 
 const updateUserSchema = Joi.object({
   email: Joi.string().email().optional(),
   password: Joi.string().min(8).optional(),
   name: Joi.string().optional(),
-  role: Joi.string().valid('USER', 'ADMIN', 'SYSTEM').optional(),
+  role: Joi.string().valid('USER', 'ADMIN').optional(),
   isActive: Joi.boolean().optional()
 })
 
@@ -96,7 +96,7 @@ router.post('/login', asyncHandler(async (req: AuthenticatedRequest, res: Respon
  *               email: { type: string, format: email }
  *               password: { type: string, minLength: 8 }
  *               name: { type: string }
- *               role: { type: string, enum: [USER, ADMIN, SYSTEM], default: USER }
+ *               role: { type: string, enum: [USER, ADMIN], default: USER }
  *     responses:
  *       201:
  *         description: User created successfully
@@ -105,7 +105,7 @@ router.post('/login', asyncHandler(async (req: AuthenticatedRequest, res: Respon
  *       409:
  *         description: User already exists
  */
-router.post('/', authMiddleware, requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', authMiddleware, requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = createUserSchema.validate(req.body)
   if (error) {
     throw createApiError('Invalid user data', 400, 'VALIDATION_ERROR', error.details)
@@ -147,7 +147,7 @@ router.post('/', authMiddleware, requireRole(['ADMIN', 'SYSTEM']), asyncHandler(
  *       200:
  *         description: List of users
  */
-router.get('/', authMiddleware, requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', authMiddleware, requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 10
 
@@ -229,7 +229,7 @@ router.get('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
  *               email: { type: string, format: email }
  *               password: { type: string, minLength: 8 }
  *               name: { type: string }
- *               role: { type: string, enum: [USER, ADMIN, SYSTEM] }
+ *               role: { type: string, enum: [USER, ADMIN] }
  *               isActive: { type: boolean }
  *     responses:
  *       200:
@@ -302,7 +302,7 @@ router.put('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
  *       404:
  *         description: User not found
  */
-router.delete('/:userId', authMiddleware, requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:userId', authMiddleware, requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userService = container.getUserService()
   await userService.deleteUser(req.params.userId)
 

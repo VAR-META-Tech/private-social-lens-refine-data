@@ -8,6 +8,12 @@ export interface CreateApiKeyDto {
   expiresAt?: Date
 }
 
+export interface UpdateApiKeyDto {
+  name?: string
+  description?: string
+  isActive?: boolean
+}
+
 export interface ApiKeyResponse {
   id: string
   name: string
@@ -171,6 +177,60 @@ export class ApiKeyService {
         metadata: { id }
       })
       return null
+    }
+  }
+
+  /**
+   * Update an API key
+   */
+  async updateApiKey(id: string, data: UpdateApiKeyDto): Promise<boolean> {
+    try {
+      await this.prisma.apiKey.update({
+        where: { id },
+        data: {
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.isActive !== undefined && { isActive: data.isActive })
+        }
+      })
+
+      logger.info('Updated API key', {
+        operation: 'update-api-key',
+        metadata: { id, updates: Object.keys(data) }
+      })
+
+      return true
+    } catch (error) {
+      logger.error('Failed to update API key', error as Error, {
+        operation: 'update-api-key',
+        metadata: { id }
+      })
+      return false
+    }
+  }
+
+  /**
+   * Activate an API key
+   */
+  async activateApiKey(id: string): Promise<boolean> {
+    try {
+      await this.prisma.apiKey.update({
+        where: { id },
+        data: { isActive: true }
+      })
+
+      logger.info('Activated API key', {
+        operation: 'activate-api-key',
+        metadata: { id }
+      })
+
+      return true
+    } catch (error) {
+      logger.error('Failed to activate API key', error as Error, {
+        operation: 'activate-api-key',
+        metadata: { id }
+      })
+      return false
     }
   }
 } 

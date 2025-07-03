@@ -32,4 +32,4 @@ export type { ConfigValue } from './system-config.service';
 export type { ScheduledJobConfig, JobExecutionContext } from './job-scheduler.service';
 export type { LogContext, LogMetrics } from './logging.service';
 export type { HealthCheckResult, SystemMetrics, AlertConfig } from './health-monitoring.service'; 
-export type { CreateApiKeyDto, ApiKeyResponse } from './api-key.service';
+export type { CreateApiKeyDto, UpdateApiKeyDto, ApiKeyResponse } from './api-key.service';

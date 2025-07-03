@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import Joi from 'joi';
 import { container } from '@/core';
 import { asyncHandler, createApiError } from '../middleware/error-handler';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest, requireRole } from '../middleware/auth';
 
 /**
  * @swagger
@@ -196,7 +196,7 @@ const updateJobSchema = Joi.object({
  *                     limit: { type: integer }
  *                     offset: { type: integer }
  */
-router.get('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const filters = {
@@ -248,7 +248,7 @@ router.get('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) =>
  *       404:
  *         description: Job not found
  */
-router.get('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:jobId', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
   const batchStats = container.getBatchStatisticsService();
 
@@ -311,7 +311,7 @@ router.get('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Respon
  *       400:
  *         description: Invalid job data
  */
-router.post('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = createJobSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid job data', 400, 'VALIDATION_ERROR', error.details);
@@ -370,7 +370,7 @@ router.post('/', asyncHandler(async (req: AuthenticatedRequest, res: Response) =
  *       409:
  *         description: Cannot update running job
  */
-router.put('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:jobId', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = updateJobSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid job data', 400, 'VALIDATION_ERROR', error.details);
@@ -421,7 +421,7 @@ router.put('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Respon
  *       409:
  *         description: Job cannot be started
  */
-router.post('/:jobId/start', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:jobId/start', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -467,7 +467,7 @@ router.post('/:jobId/start', asyncHandler(async (req: AuthenticatedRequest, res:
  *       409:
  *         description: Job cannot be stopped
  */
-router.post('/:jobId/stop', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:jobId/stop', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -513,7 +513,7 @@ router.post('/:jobId/stop', asyncHandler(async (req: AuthenticatedRequest, res: 
  *       409:
  *         description: Job cannot be retried
  */
-router.post('/:jobId/retry', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:jobId/retry', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -559,7 +559,7 @@ router.post('/:jobId/retry', asyncHandler(async (req: AuthenticatedRequest, res:
  *       409:
  *         description: Cannot delete running job
  */
-router.delete('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:jobId', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);
@@ -624,7 +624,7 @@ router.delete('/:jobId', asyncHandler(async (req: AuthenticatedRequest, res: Res
  *       404:
  *         description: Job not found
  */
-router.get('/:jobId/logs', asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:jobId/logs', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const jobScheduler = container.getJobSchedulerService();
 
   const job = await jobScheduler.getJobById(req.params.jobId);

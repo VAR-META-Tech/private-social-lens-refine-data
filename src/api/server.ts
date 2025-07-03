@@ -13,7 +13,7 @@ import rateLimit from 'express-rate-limit';
 import { container } from '@/core';
 import { logger } from '@/services';
 import {authMiddleware, errorHandler, requestLogger} from "@/api/middleware";
-import {configRoutes, healthRoutes, jobRoutes, statsRoutes, userRoutes} from "@/api/routes";
+import {apiKeyRoutes, configRoutes, healthRoutes, jobRoutes, statsRoutes, userRoutes} from "@/api/routes";
 
 export class ApiServer {
   private app: express.Application;
@@ -78,6 +78,7 @@ export class ApiServer {
         retryAfter: '15 minutes'
       }
     });
+    this.app.use('/api/api-keys', strictLimiter);
     this.app.use('/api/jobs', strictLimiter);
     this.app.use('/api/config', strictLimiter);
 
@@ -100,9 +101,11 @@ export class ApiServer {
         description: 'REST API for batch refinement service management',
         endpoints: {
           health: '/api/health',
+          'api-keys': '/api/api-keys',
           jobs: '/api/jobs',
           config: '/api/config',
           stats: '/api/stats',
+          users: '/api/users',
           docs: '/api/docs'
         },
         timestamp: new Date().toISOString()
@@ -110,6 +113,7 @@ export class ApiServer {
     });
 
     // Protected API routes
+    this.app.use('/api/api-keys', authMiddleware, apiKeyRoutes);
     this.app.use('/api/jobs', authMiddleware, jobRoutes);
     this.app.use('/api/config', authMiddleware, configRoutes);
     this.app.use('/api/stats', authMiddleware, statsRoutes);

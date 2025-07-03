@@ -35,7 +35,6 @@ const configCreateSchema = Joi.object({
  *     description: Get all system configuration keys and values
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: query
  *         name: category
@@ -69,7 +68,7 @@ const configCreateSchema = Joi.object({
  *                       updatedAt: { type: string, format: date-time }
  *                       updatedBy: { type: string }
  */
-router.get('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
 
   const category = req.query.category as string;
@@ -106,7 +105,6 @@ router.get('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: Authe
  *     description: Get list of configuration categories (prefixes)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     responses:
  *       200:
  *         description: Configuration categories
@@ -124,7 +122,7 @@ router.get('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: Authe
  *                       count: { type: integer }
  *                       description: { type: string }
  */
-router.get('/categories', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/categories', requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
 
   const allConfig = await systemConfig.getAllConfig();
@@ -159,7 +157,6 @@ router.get('/categories', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (
  *     description: Get a specific configuration value by key
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: path
  *         name: key
@@ -179,7 +176,7 @@ router.get('/categories', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (
  *       404:
  *         description: Configuration key not found
  */
-router.get('/:key', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:key', requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
   const decrypt = req.query.decrypt === 'true';
 
@@ -221,7 +218,6 @@ router.get('/:key', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: A
  *     description: Create a new configuration key-value pair (admin only)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     requestBody:
  *       required: true
  *       content:
@@ -245,7 +241,7 @@ router.get('/:key', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: A
  *       409:
  *         description: Configuration key already exists
  */
-router.post('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = configCreateSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid configuration data', 400, 'VALIDATION_ERROR', error.details);
@@ -283,7 +279,6 @@ router.post('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: Auth
  *     description: Update an existing configuration value (admin only)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: path
  *         name: key
@@ -311,7 +306,7 @@ router.post('/', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: Auth
  *       400:
  *         description: Invalid configuration data
  */
-router.put('/:key', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:key', requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = configUpdateSchema.validate(req.body);
   if (error) {
     throw createApiError('Invalid configuration data', 400, 'VALIDATION_ERROR', error.details);
@@ -348,7 +343,6 @@ router.put('/:key', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: A
  *     description: Delete a configuration key-value pair (admin only)
  *     security:
  *       - bearerAuth: []
- *       - apiKey: []
  *     parameters:
  *       - in: path
  *         name: key
@@ -362,7 +356,7 @@ router.put('/:key', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: A
  *       404:
  *         description: Configuration key not found
  */
-router.delete('/:key', requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:key', requireRole(['ADMIN']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const systemConfig = container.getSystemConfigService();
 
   // Check if key exists
