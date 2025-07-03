@@ -19,6 +19,8 @@ export {
   authMiddleware,
   optionalAuthMiddleware,
   generateJwtToken,
+  requireRole,
+  requireAdmin,
   errorHandler,
   createApiError,
   asyncHandler,

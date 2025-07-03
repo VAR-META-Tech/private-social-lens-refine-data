@@ -7,7 +7,7 @@ import { Router, Response } from 'express'
 import Joi from 'joi'
 import { container } from '@/core'
 import { asyncHandler, createApiError } from '../middleware/error-handler'
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth'
+import { AuthenticatedRequest, authMiddleware, requireRole } from '../middleware/auth'
 
 const router = Router()
 
@@ -105,12 +105,7 @@ router.post('/login', asyncHandler(async (req: AuthenticatedRequest, res: Respon
  *       409:
  *         description: User already exists
  */
-router.post('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  // Check if user has admin role
-  if (req.user?.role !== 'ADMIN') {
-    throw createApiError('Admin role required', 403, 'INSUFFICIENT_PERMISSIONS')
-  }
-
+router.post('/', authMiddleware, requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { error, value } = createUserSchema.validate(req.body)
   if (error) {
     throw createApiError('Invalid user data', 400, 'VALIDATION_ERROR', error.details)
@@ -152,12 +147,7 @@ router.post('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, 
  *       200:
  *         description: List of users
  */
-router.get('/', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  // Check if user has admin role
-  if (req.user?.role !== 'ADMIN') {
-    throw createApiError('Admin role required', 403, 'INSUFFICIENT_PERMISSIONS')
-  }
-
+router.get('/', authMiddleware, requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 10
 
@@ -271,11 +261,12 @@ router.put('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
     const userService = container.getUserService()
     const user = await userService.updateUser(req.params.userId, updateData)
 
-    return res.json({
+    res.json({
       message: 'User updated successfully',
       user,
       timestamp: new Date().toISOString()
     })
+    return
   }
 
   // Admin can update all fields
@@ -311,12 +302,7 @@ router.put('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedReq
  *       404:
  *         description: User not found
  */
-router.delete('/:userId', authMiddleware, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  // Check if user has admin role
-  if (req.user?.role !== 'ADMIN') {
-    throw createApiError('Admin role required', 403, 'INSUFFICIENT_PERMISSIONS')
-  }
-
+router.delete('/:userId', authMiddleware, requireRole(['ADMIN', 'SYSTEM']), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userService = container.getUserService()
   await userService.deleteUser(req.params.userId)
 

@@ -7,7 +7,9 @@
 export {
   authMiddleware,
   optionalAuthMiddleware,
-  generateJwtToken
+  generateJwtToken,
+  requireRole,
+  requireAdmin
 } from './auth'
 
 // Authentication types

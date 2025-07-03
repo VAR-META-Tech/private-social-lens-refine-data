@@ -151,3 +151,34 @@ export function generateJwtToken(payload: any, expiresIn: string = '24h'): strin
   }
   return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
 }
+
+/**
+ * Role-based authorization middleware
+ * Requires specific roles to access the endpoint
+ */
+export function requireRole(allowedRoles: Array<'USER' | 'ADMIN' | 'SYSTEM'>) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    try {
+      if (!req.user) {
+        throw createApiError('Authentication required', 401, 'AUTHENTICATION_REQUIRED');
+      }
+
+      if (!allowedRoles.includes(req.user.role)) {
+        const roleString = allowedRoles.length === 1 ? `${allowedRoles[0]} role` : `one of the following roles: ${allowedRoles.join(', ')}`;
+        throw createApiError(`Access denied. Required: ${roleString}`, 403, 'INSUFFICIENT_PERMISSIONS');
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
+ * Admin-only authorization middleware
+ * Shorthand for requireRole(['ADMIN', 'SYSTEM'])
+ */
+export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  return requireRole(['ADMIN', 'SYSTEM'])(req, res, next);
+}
