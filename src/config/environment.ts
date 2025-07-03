@@ -25,6 +25,8 @@ export interface EnvironmentConfig {
   // Blockchain
   rpcUrl: string;
   dataRegistryAddress: string;
+  networkName: string;
+  networkChainId: number;
   
   // API
   refinementServiceApiBaseUrl: string;
@@ -61,6 +63,8 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
     // Blockchain
     rpcUrl: process.env.RPC_URL || 'https://rpc.moksha.vana.org',
     dataRegistryAddress: process.env.DATA_REGISTRY_ADDRESS || '',
+    networkName: process.env.NETWORK_NAME || 'vana-moksha',
+    networkChainId: parseInt(process.env.NETWORK_CHAIN_ID || '14800', 10),
     
     // API
     refinementServiceApiBaseUrl: process.env.REFINEMENT_SERVICE_API_BASE_URL || 

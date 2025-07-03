@@ -24,8 +24,8 @@ export function initializeContract(): void {
 
   // Create a provider with network information and ENS disabled
   const network = {
-    name: 'vana-moksha',
-    chainId: 14800, // TODO - NEED TO FIX HARDCODING
+    name: config.networkName,
+    chainId: config.networkChainId,
   };
 
   provider = new ethers.providers.JsonRpcProvider(config.rpcUrl, network);
