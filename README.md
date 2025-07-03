@@ -12,6 +12,7 @@ A high-performance, production-ready service for processing and refining files i
 - [Usage](#-usage)
 - [API Documentation](#-api-documentation)
 - [Architecture](#-architecture)
+- [Job Lifecycle](#-job-lifecycle)
 - [Monitoring & Health Checks](#-monitoring--health-checks)
 - [Docker Deployment](#-docker-deployment)
 - [Troubleshooting](#-troubleshooting)
@@ -295,6 +296,170 @@ graph TD
     style I fill:#fff3e0
     style N fill:#e8f5e8
 ```
+
+## 🔄 Job Lifecycle
+
+### Job States Overview
+
+The Batch Refinement Service uses a comprehensive state machine to manage job lifecycles. Each job transitions through specific states based on its type and execution status.
+
+#### Available Job States
+
+| State | Description | Can Transition To |
+|-------|-------------|-------------------|
+| `PENDING` | Job created, ready to start | `SCHEDULED`, `RUNNING`, `CANCELLED` |
+| `SCHEDULED` | Job with cron schedule, waiting for trigger | `RUNNING`, `CANCELLED` |
+| `RUNNING` | Job actively executing | `COMPLETED`, `RETRYING`, `FAILED`, `CANCELLED` |
+| `COMPLETED` | Single execution completed successfully | `SCHEDULED` (for cron jobs) |
+| `RETRYING` | Failed execution, waiting for auto-retry | `RUNNING`, `CANCELLED` |
+| `FAILED` | Max retries exceeded, requires manual intervention | `PENDING` (manual retry) |
+| `CANCELLED` | Manually stopped by user | `PENDING` (manual retry) |
+
+### Job State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : createJob()
+    
+    PENDING --> SCHEDULED : startJob()<br/>(job has cronSchedule)
+    PENDING --> RUNNING : executeJob()<br/>(job has no cronSchedule)
+    PENDING --> CANCELLED : stopJob()
+    
+    SCHEDULED --> RUNNING : Cron trigger<br/>executeJob()
+    SCHEDULED --> CANCELLED : stopJob()
+    
+    RUNNING --> COMPLETED : Execution success
+    RUNNING --> RETRYING : Execution fails<br/>& retryCount < maxRetries
+    RUNNING --> FAILED : Execution fails<br/>& retryCount >= maxRetries
+    RUNNING --> CANCELLED : stopJob()
+    
+    RETRYING --> RUNNING : nextRetryAt expires<br/>auto retry
+    RETRYING --> CANCELLED : stopJob()
+    
+    COMPLETED --> SCHEDULED : For scheduled jobs<br/>(wait for next cron)
+    
+    FAILED --> PENDING : retryJob()<br/>(manual retry)
+    CANCELLED --> PENDING : retryJob()<br/>(manual retry)
+    
+    note right of PENDING
+        Job created, ready to start
+        Can be one-time or scheduled
+    end note
+    
+    note right of SCHEDULED
+        Job with cronSchedule
+        Waiting for next trigger
+        Task registered in scheduler
+    end note
+    
+    note right of RUNNING
+        Job actively executing
+        In runningJobs map
+        Cannot be retried
+    end note
+    
+    note right of RETRYING
+        Failed execution
+        nextRetryAt set
+        Auto retry pending
+    end note
+    
+    note right of COMPLETED
+        Single execution done
+        For scheduled jobs: back to SCHEDULED
+        For one-time jobs: final state
+    end note
+    
+    note right of FAILED
+        Max retries exceeded
+        Requires manual intervention
+        Can be manually retried
+    end note
+    
+    note right of CANCELLED
+        Manually stopped
+        Scheduled task removed
+        Can be manually restarted
+    end note
+```
+
+### Job Type Lifecycles
+
+#### 1. Scheduled Jobs (with cronSchedule)
+**Infinite Loop Lifecycle:**
+```
+PENDING → SCHEDULED → RUNNING → COMPLETED → SCHEDULED → RUNNING → ...
+```
+
+**Example:**
+```javascript
+// Daily batch processing at 2 AM
+{
+  "jobName": "daily-batch-refinement",
+  "jobType": "SCHEDULED_BATCH",
+  "cronSchedule": "0 2 * * *",
+  "metadata": {
+    "batchIncrement": 100,
+    "initialStartFileId": 1000
+  }
+}
+```
+
+#### 2. One-Time Jobs (no cronSchedule)
+**Linear Lifecycle:**
+```
+PENDING → RUNNING → COMPLETED (final)
+```
+
+**Example:**
+```javascript
+// Process specific file range once
+{
+  "jobName": "manual-range-processing",
+  "jobType": "RANGE_BASED",
+  "startFileId": 500,
+  "endFileId": 400,
+  "batchSize": 10
+}
+```
+
+#### Manual Recovery
+```bash
+# Get failed jobs
+curl http://localhost:3000/api/jobs?status=FAILED
+
+# Retry specific job
+curl -X POST http://localhost:3000/api/jobs/{jobId}/retry
+
+# Check job status
+curl http://localhost:3000/api/jobs/{jobId}
+```
+
+### Job Monitoring Commands
+
+```bash
+# List jobs by status
+curl "http://localhost:3000/api/jobs?status=SCHEDULED"
+curl "http://localhost:3000/api/jobs?status=RUNNING"
+curl "http://localhost:3000/api/jobs?status=FAILED"
+
+# Get job details with execution history
+curl "http://localhost:3000/api/jobs/{jobId}"
+
+# View job execution logs
+curl "http://localhost:3000/api/jobs/{jobId}/logs"
+
+# Job statistics
+curl "http://localhost:3000/api/stats/jobs?since=2024-01-01"
+```
+
+### Best Practices
+
+1. **Scheduled Jobs**: Use cron expressions for automated processing
+2. **One-Time Jobs**: Use for manual ranges or API-triggered processing  
+3. **Error Recovery**: Monitor FAILED jobs and retry manually when needed
+4. **Resource Management**: Limit concurrent RUNNING jobs (default: 5)
+5. **Monitoring**: Set up alerts for jobs stuck in RETRYING state
 
 ## 📊 Monitoring & Health Checks
 
